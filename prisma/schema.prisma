@@ -17,6 +17,12 @@ enum UserRole {
   USER
 }
 
+enum TransactionType {
+  IN
+  OUT
+  PENALTY
+}
+
 model User {
   id            String    @id
   name          String
@@ -28,6 +34,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  cards         Card[]
 
   @@unique([email])
   @@map("user")
@@ -79,4 +86,114 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// BUS
+model Bus {
+  id          String  @id @default(cuid())
+  busCode     String  @unique
+  plateNumber String
+  isActive    Boolean @default(true)
+
+  // Relasi ke Route: Setiap bus terdaftar di satu rute tertentu
+  routeId String?
+  route   Route?  @relation(fields: [routeId], references: [id])
+
+  passengers   Card[]
+  locations    BusLocation[]
+  transactions Transaction[]
+
+  @@map("bus")
+}
+
+model Card {
+  rfidTag  String  @id
+  balance  Float   @default(0)
+  isInside Boolean @default(false)
+  status   String  @default("active")
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  lastBusId String?
+  lastBus   Bus?    @relation(fields: [lastBusId], references: [id])
+
+  transactions Transaction[]
+
+  @@map("card")
+}
+
+// Update Transaction untuk mencatat di stasiun mana user Tap
+model Transaction {
+  id        String          @id @default(uuid())
+  type      TransactionType
+  amount    Float
+  latTap    Float?
+  lngTap    Float?
+  createdAt DateTime        @default(now())
+
+  rfidTag String
+  card    Card   @relation(fields: [rfidTag], references: [rfidTag])
+
+  busId String
+  bus   Bus    @relation(fields: [busId], references: [id])
+
+  // Opsional: Mencatat nama stasiun saat transaksi terjadi
+  stationName String?
+
+  @@map("transaction")
+}
+
+model BusLocation {
+  id         BigInt   @id @default(autoincrement())
+  latitude   Float
+  longitude  Float
+  speed      Float?
+  recordedAt DateTime @default(now())
+
+  busId String
+  bus   Bus    @relation(fields: [busId], references: [id])
+
+  @@index([busId])
+  @@map("bus_location")
+}
+
+model Route {
+  id          String   @id @default(cuid())
+  routeName   String
+  pathGeoJSON Json // Garis kuning trayek
+  createdAt   DateTime @default(now())
+
+  buses Bus[]
+
+  // Relasi ke stasiun yang dilewati rute ini
+  stations RouteStation[]
+
+  @@map("route")
+}
+
+model Station {
+  id        String @id @default(cuid())
+  name      String // Contoh: "Halte Menur"
+  latitude  Float
+  longitude Float
+  radius    Int    @default(50) // Radius deteksi geofencing (meter)
+
+  // Relasi balik ke rute
+  routes RouteStation[]
+
+  @@map("station")
+}
+
+// Tabel penengah (Pivot) untuk mengatur urutan halte dalam satu rute
+model RouteStation {
+  routeId   String
+  stationId String
+  order     Int    @default(0) // Urutan halte dalam rute
+
+  route   Route   @relation(fields: [routeId], references: [id])
+  station Station @relation(fields: [stationId], references: [id])
+
+  @@id([routeId, stationId])
+  @@map("route_station")
 }
