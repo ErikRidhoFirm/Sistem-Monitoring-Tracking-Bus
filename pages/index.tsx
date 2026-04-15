@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 
@@ -17,6 +18,23 @@ export default function Home() {
       className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
     >
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+        <header className="mb-10 flex w-full flex-col gap-4 rounded-3xl border border-border bg-muted/70 p-4 text-sm text-muted-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>
+            <p className="font-semibold text-foreground">BusControl</p>
+            <p className="text-xs text-muted-foreground">IoT monitoring dashboard starter</p>
+          </div>
+          <nav className="flex flex-wrap items-center gap-3">
+            <Link href="/admin" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted">
+              Admin Dashboard
+            </Link>
+            <Link href="/admin/buses" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted">
+              Bus Management
+            </Link>
+            <Link href="/admin/rfid" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted">
+              RFID Management
+            </Link>
+          </nav>
+        </header>
         <Image
           className="dark:invert"
           src="/next.svg"
