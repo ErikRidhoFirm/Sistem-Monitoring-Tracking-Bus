@@ -32,7 +32,7 @@ const menuItems = [
   {
     label: "Kelola kartu RFID",
     description: "Kelola data kartu RFID untuk tap in/out.",
-    href: "/admin/rfid",
+    href: "/admin/cards",
     icon: CreditCard,
   },
   {
