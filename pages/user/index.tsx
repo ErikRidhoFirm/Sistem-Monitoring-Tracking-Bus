@@ -51,7 +51,7 @@ function CardsList({ cards }: { cards: UserCard[] }) {
       {cards.map((card) => (
         <div key={card.rfidTag} className="rounded-xl border border-border bg-background p-4">
           <p className="text-sm font-semibold">ID Kartu: {card.rfidTag}</p>
-          <p className="text-sm text-muted-foreground">Saldo: Rp {card.balance.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground">Saldo: Rp {card.balance.toLocaleString("id-ID")}</p>
           <p className="text-sm text-muted-foreground">Status: {card.status}</p>
         </div>
       ))}
