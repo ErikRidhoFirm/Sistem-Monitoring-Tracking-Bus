@@ -159,32 +159,6 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="space-y-6">
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Card key={item.label} className="transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-lg">
-                  <Link href={item.href} className="block h-full">
-                    <CardHeader className="gap-4 p-6">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{item.label}</CardTitle>
-                        <CardDescription className="mt-2 text-sm text-muted-foreground">
-                          {item.description}
-                        </CardDescription>
-                      </div>
-                    </CardHeader>
-                  </Link>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
-
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => {
             const Icon = metric.icon;
