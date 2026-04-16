@@ -1,21 +1,19 @@
 import { Manrope, Sora } from "next/font/google";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { BusStatusCard } from "@/components/realtime-map/BusStatusCard";
+import { FleetSummaryCard } from "@/components/realtime-map/FleetSummaryCard";
+import { GpsPermissionDialog } from "@/components/realtime-map/GpsPermissionDialog";
+import { MapHeader } from "@/components/realtime-map/MapHeader";
+import { MapToolbar } from "@/components/realtime-map/MapToolbar";
+import { RouteInfoCard } from "@/components/realtime-map/RouteInfoCard";
 import {
   type BusTelemetry,
   type Coordinate,
   createRealtimeBusFeed,
 } from "@/lib/realtime-bus-feed";
+
+import styles from "./realtime-map.module.css";
 
 const MAP_STYLE_URLS = {
   light: "mapbox://styles/mapbox/light-v11",
@@ -673,7 +671,7 @@ export default function RealtimeMapPage() {
             routeCoordinates: roadRoute,
             stopNames,
             loopDurationSeconds: 80,
-            busCount: 7,
+            busCount: 2,
           },
         );
       });
@@ -705,82 +703,33 @@ export default function RealtimeMapPage() {
       className={`${sora.variable} ${manrope.variable} min-h-screen bg-[#f7f9ff] text-[#173330]`}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="aurora-mesh absolute inset-0" />
-        <div className="gradient-orb orb-a absolute -top-20 left-1/4 h-72 w-72 rounded-full" />
-        <div className="gradient-orb orb-b absolute bottom-0 -right-16 h-80 w-80 rounded-full" />
-        <div className="gradient-orb orb-c absolute top-1/3 -left-20 h-64 w-64 rounded-full" />
+        <div className={`${styles.auroraMesh} absolute inset-0`} />
+        <div
+          className={`${styles.gradientOrb} ${styles.orbA} absolute -top-20 left-1/4 h-72 w-72 rounded-full`}
+        />
+        <div
+          className={`${styles.gradientOrb} ${styles.orbB} absolute bottom-0 -right-16 h-80 w-80 rounded-full`}
+        />
+        <div
+          className={`${styles.gradientOrb} ${styles.orbC} absolute top-1/3 -left-20 h-64 w-64 rounded-full`}
+        />
       </div>
 
       <main className="relative mx-auto w-full max-w-7xl px-5 py-8 md:px-10 lg:px-16">
-        <header className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#245bb0]/12 bg-white/70 px-5 py-4 shadow-[0_12px_36px_rgba(36,91,176,0.08)] backdrop-blur-md">
-          <div>
-            <p className="text-xs tracking-[0.2em] text-[#173330]/60 uppercase">
-              Realtime Command Center
-            </p>
-            <h1
-              style={{ fontFamily: "var(--font-display)" }}
-              className="mt-2 text-3xl font-semibold md:text-4xl"
-            >
-              Buswy Live Map
-            </h1>
-          </div>
-          <Link
-            href="/"
-            className="inline-flex h-11 items-center rounded-full border border-[#245bb0]/20 bg-white/85 px-5 text-sm font-semibold transition hover:bg-white"
-          >
-            Kembali ke Landing
-          </Link>
-        </header>
+        <MapHeader />
 
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <article className="overflow-hidden rounded-[2rem] border border-[#245bb0]/16 bg-white/85 shadow-[0_18px_44px_rgba(36,91,176,0.12)]">
             <div className="border-b border-[#245bb0]/10 bg-linear-to-r from-[#eef5ff]/60 to-[#ebfdfa]/50 px-5 py-4 text-sm text-[#173330]/70">
               Tracking rute kampus utama • Update simulasi setiap frame
             </div>
-            <div className="flex flex-wrap items-center gap-2 border-b border-[#245bb0]/10 bg-white/70 px-5 py-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setGpsDialogOpen(true)}
-                className="h-9 rounded-full border-[#245bb0]/25 bg-white px-4 text-xs font-semibold tracking-[0.06em] uppercase"
-              >
-                Akses GPS
-              </Button>
-
-              <button
-                type="button"
-                onClick={() => setIsTiltedView((prev) => !prev)}
-                className={`inline-flex h-9 items-center rounded-full border px-4 text-xs font-semibold tracking-[0.06em] uppercase transition ${
-                  isTiltedView
-                    ? "border-[#245bb0]/35 bg-[#245bb0]/12 text-[#173330]"
-                    : "border-[#245bb0]/20 bg-white text-[#173330]/75"
-                }`}
-              >
-                {isTiltedView ? "3D View ON" : "3D View OFF"}
-              </button>
-
-              {(
-                [
-                  { key: "light", label: "Light" },
-                  { key: "streets", label: "Streets" },
-                  { key: "satellite", label: "Satellite" },
-                ] as const
-              ).map((styleOption) => (
-                <button
-                  key={styleOption.key}
-                  type="button"
-                  onClick={() => setMapStyle(styleOption.key)}
-                  className={`inline-flex h-9 items-center rounded-full border px-4 text-xs font-semibold tracking-[0.06em] uppercase transition ${
-                    mapStyle === styleOption.key
-                      ? "border-[#2f8f83]/35 bg-[#2f8f83]/12 text-[#173330]"
-                      : "border-[#245bb0]/20 bg-white text-[#173330]/75"
-                  }`}
-                >
-                  {styleOption.label}
-                </button>
-              ))}
-            </div>
+            <MapToolbar
+              isTiltedView={isTiltedView}
+              mapStyle={mapStyle}
+              onOpenGpsDialog={() => setGpsDialogOpen(true)}
+              onToggleTiltedView={() => setIsTiltedView((prev) => !prev)}
+              onSetMapStyle={setMapStyle}
+            />
             {tokenMissing ? (
               <div className="flex min-h-125 flex-col items-center justify-center gap-4 px-6 text-center">
                 <p
@@ -795,231 +744,39 @@ export default function RealtimeMapPage() {
                 </p>
               </div>
             ) : (
-              <div ref={mapRef} className="map-container min-h-125 w-full" />
+              <div
+                ref={mapRef}
+                className={`${styles.mapContainer} min-h-125 w-full`}
+              />
             )}
           </article>
 
           <aside className="space-y-4">
-            <div className="rounded-3xl border border-[#245bb0]/16 bg-white/72 p-5 shadow-[0_10px_30px_rgba(36,91,176,0.08)] backdrop-blur-sm">
-              <p className="text-xs tracking-[0.18em] text-[#173330]/60 uppercase">
-                Status Bus
-              </p>
-              <p
-                style={{ fontFamily: "var(--font-display)" }}
-                className="mt-2 text-3xl font-semibold text-[#e86f3f]"
-              >
-                {busLabel}
-              </p>
-              <p className="mt-4 text-sm text-[#173330]/80">
-                Posisi terdekat: {currentStop}
-              </p>
-              <p className="mt-1 text-sm text-[#173330]/80">
-                ETA menuju shelter berikutnya: {eta} menit
-              </p>
-              <p className="mt-1 text-sm text-[#173330]/80">
-                Kecepatan saat ini: {speedKph.toFixed(1)} km/j
-              </p>
-              <p className="mt-1 text-sm text-[#173330]/80">
-                Jumlah penumpang: {passengerCount} orang
-              </p>
-              <p className="mt-1 text-sm text-[#173330]/80">
-                Lokasi saya: {userLocation ? "Terdeteksi" : "Belum aktif"}
-              </p>
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#2f8f83]/35 bg-[#2f8f83]/10 px-3 py-1 text-xs font-semibold text-[#22685f]">
-                <span className="h-2 w-2 rounded-full bg-[#62f4da] animate-pulse" />
-                {statusLabel}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-[#245bb0]/16 bg-white/72 p-5 shadow-[0_10px_30px_rgba(36,91,176,0.08)] backdrop-blur-sm">
-              <p className="text-xs tracking-[0.18em] text-[#173330]/60 uppercase">
-                Informasi Rute
-              </p>
-              <ul className="mt-4 space-y-3 text-sm text-[#173330]/85">
-                {stopNames.map((stopName) => (
-                  <li
-                    key={stopName}
-                    className="flex items-center justify-between rounded-xl border border-[#245bb0]/12 bg-linear-to-r from-[#ffffff] to-[#f3f7ff] px-3 py-2"
-                  >
-                    <span>{stopName}</span>
-                    <span className="text-[#e86f3f]">Aktif</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-3xl border border-[#245bb0]/16 bg-linear-to-br from-[#eaf2ff] via-[#f4f8ff] to-[#e9fbff] p-5 shadow-[0_10px_30px_rgba(36,91,176,0.08)]">
-              <p
-                style={{ fontFamily: "var(--font-display)" }}
-                className="text-2xl font-semibold"
-              >
-                24 Bus Operasional
-              </p>
-              <p className="mt-2 text-sm text-[#173330]/75">
-                Seluruh armada hari ini dalam status aktif dan terhubung ke
-                sistem pelacakan.
-              </p>
-              <p className="mt-2 text-sm text-[#173330]/75">
-                Bus aktif terdeteksi: {activeBusCount}
-              </p>
-              <p className="mt-2 text-xs tracking-[0.12em] text-[#173330]/55 uppercase">
-                Sumber data: {feedMode === "mqtt" ? "MQTT" : "Dummy Simulator"}
-              </p>
-            </div>
+            <BusStatusCard
+              busLabel={busLabel}
+              currentStop={currentStop}
+              eta={eta}
+              speedKph={speedKph}
+              passengerCount={passengerCount}
+              userLocation={userLocation}
+              statusLabel={statusLabel}
+            />
+            <RouteInfoCard stopNames={stopNames} />
+            <FleetSummaryCard
+              activeBusCount={activeBusCount}
+              feedMode={feedMode}
+            />
           </aside>
         </section>
       </main>
 
-      <Dialog open={gpsDialogOpen} onOpenChange={setGpsDialogOpen}>
-        <DialogContent className="max-w-lg rounded-2xl border border-[#245bb0]/16 bg-white/95">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-[#173330]">
-              Izinkan Akses Lokasi GPS
-            </DialogTitle>
-            <DialogDescription className="text-sm leading-7 text-[#173330]/70">
-              Buswy membutuhkan lokasi kamu untuk menampilkan titik posisi saat
-              ini di peta realtime dan membantu estimasi kedekatan bus.
-            </DialogDescription>
-          </DialogHeader>
-
-          {gpsError ? (
-            <p className="rounded-xl border border-[#e86f3f]/25 bg-[#fff4ef] px-4 py-3 text-sm text-[#b3451c]">
-              {gpsError}
-            </p>
-          ) : null}
-
-          <DialogFooter className="gap-2 sm:justify-end">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => setGpsDialogOpen(false)}
-            >
-              Nanti Saja
-            </Button>
-            <Button
-              type="button"
-              onClick={handleRequestGpsAccess}
-              disabled={gpsLoading}
-              className="bg-[#173330] text-[#f4f1e8] hover:bg-[#112927]"
-            >
-              {gpsLoading ? "Meminta Akses..." : "Izinkan GPS"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <style jsx>{`
-        .aurora-mesh {
-          background:
-            radial-gradient(
-              circle at 14% 16%,
-              rgba(122, 183, 255, 0.34),
-              transparent 32%
-            ),
-            radial-gradient(
-              circle at 82% 20%,
-              rgba(98, 244, 218, 0.28),
-              transparent 35%
-            ),
-            radial-gradient(
-              circle at 50% 82%,
-              rgba(255, 177, 102, 0.2),
-              transparent 30%
-            );
-          animation: mesh-float 14s ease-in-out infinite alternate;
-        }
-
-        .gradient-orb {
-          filter: blur(56px);
-          opacity: 0.5;
-          animation: orb-drift 18s ease-in-out infinite;
-        }
-
-        .orb-a {
-          background: #8bc6ff;
-        }
-
-        .orb-b {
-          background: #a4f4eb;
-          animation-delay: 2s;
-        }
-
-        .orb-c {
-          background: #ffd7a8;
-          animation-delay: 4s;
-        }
-
-        .map-container {
-          position: relative;
-        }
-
-        .map-container :global(.mapboxgl-ctrl button) {
-          background: #f7f9ff;
-        }
-
-        .map-container :global(.mapboxgl-ctrl button span) {
-          filter: invert(20%);
-        }
-
-        .map-container :global(.bus-info-popup .mapboxgl-popup-content) {
-          border-radius: 14px;
-          border: 1px solid rgba(36, 91, 176, 0.18);
-          background: #ffffff;
-          box-shadow: 0 14px 30px rgba(36, 91, 176, 0.16);
-          padding: 0;
-        }
-
-        .map-container :global(.bus-info-popup .mapboxgl-popup-tip) {
-          border-top-color: #ffffff;
-          border-bottom-color: #ffffff;
-        }
-
-        .map-container :global(.bus-popup-card) {
-          min-width: 190px;
-          padding: 12px 14px;
-          color: #173330;
-        }
-
-        .map-container :global(.bus-popup-title) {
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: #245bb0;
-          margin-bottom: 8px;
-        }
-
-        .map-container :global(.bus-popup-line) {
-          display: flex;
-          justify-content: space-between;
-          gap: 1rem;
-          font-size: 13px;
-          margin-top: 4px;
-        }
-
-        .map-container :global(.bus-popup-line strong) {
-          font-weight: 700;
-        }
-
-        @keyframes mesh-float {
-          0% {
-            transform: scale(1) translate3d(0, 0, 0);
-          }
-          100% {
-            transform: scale(1.08) translate3d(1.5%, -1%, 0);
-          }
-        }
-
-        @keyframes orb-drift {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
-          50% {
-            transform: translate3d(1rem, -0.7rem, 0) scale(1.07);
-          }
-        }
-      `}</style>
+      <GpsPermissionDialog
+        open={gpsDialogOpen}
+        onOpenChange={setGpsDialogOpen}
+        gpsError={gpsError}
+        gpsLoading={gpsLoading}
+        onRequestGpsAccess={handleRequestGpsAccess}
+      />
     </div>
   );
 }
