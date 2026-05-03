@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AdminLayout } from "@/components/admin/layout";
-import UserForm from "@/components/user/UserForm";
 import UserTable from "@/components/user/UserTable";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import Link from "next/link";
+import { useRouter } from "next/router";
 
 interface User {
   id: string;
@@ -14,87 +17,62 @@ interface User {
 }
 
 export default function UserPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [editUser, setEditUser] = useState<User | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   // State untuk Search dan Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState<"Semua" | "ADMIN" | "USER">("Semua");
 
-  // AMBIL DATA DARI LOCAL STORAGE
-  useEffect(() => {
-    // Kita jalankan di useEffect agar tidak error Hydration di Next.js
-    const storedUsers = localStorage.getItem("usersData");
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
-    }
-    setIsLoading(false);
-  }, []);
+  // GET: Mengambil data user
+  const { data: usersData, isLoading } = useQuery<{ data: User[] }>({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/users");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.errors?.[0]?.message || "Gagal mengambil data");
+      return json;
+    },
+  });
 
-  // FUNGSI SIMPAN & UPDATE DATA KE LOCAL STORAGE
-  const handleSubmit = (data: Omit<User, "id" | "createdAt" | "updatedAt">, id?: string) => {
-    let updatedUsers: User[];
+  const users = usersData?.data || [];
 
-    if (id) {
-      // PROSES EDIT: Cari user berdasarkan ID, lalu timpa datanya
-      updatedUsers = users.map((u) => 
-        u.id === id ? { ...u, ...data } : u
-      );
-    } else {
-      // PROSES TAMBAH: Buat ID acak dan tanggal dibuat, lalu taruh di urutan paling atas array
-      const newUser: User = {
-        id: Date.now().toString(), // Generate ID unik pakai waktu
-        ...data,
-        createdAt: new Date().toISOString(),
-      };
-      updatedUsers = [newUser, ...users];
-    }
+  // DELETE: Hapus User
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.errors?.[0]?.message || "Gagal menghapus data");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("Berhasil menghapus pengguna!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
-    // Update state agar tabel langsung berubah
-    setUsers(updatedUsers);
-    
-    // Simpan ke localStorage
-    localStorage.setItem("usersData", JSON.stringify(updatedUsers));
-
-    // Tutup form
-    setIsFormOpen(false);
-    setEditUser(null);
-  };
-
-  // FUNGSI EDIT
   const handleEdit = (user: User) => {
-    setEditUser(user);
-    setIsFormOpen(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    router.push(`/admin/users/${user.id}`);
   };
 
-  // FUNGSI HAPUS
   const handleDelete = (id: string) => {
     if (!confirm("Yakin ingin menghapus data user ini?")) return;
-    
-    // Filter out / buang user yang ID-nya dihapus
-    const updatedUsers = users.filter((u) => u.id !== id);
-    
-    // Update state & localStorage
-    setUsers(updatedUsers);
-    localStorage.setItem("usersData", JSON.stringify(updatedUsers));
-  };
-
-  const handleAddNew = () => {
-    setEditUser(null);
-    setIsFormOpen(true);
+    deleteMutation.mutate(id);
   };
 
   // Kalkulasi Statistik
   const totalUsers = users.length;
-  const totalAdmin = users.filter(u => u.role === 'ADMIN').length;
-  const totalUserBiasa = users.filter(u => u.role === 'USER').length;
-  const totalVerified = users.filter(u => u.emailVerified).length;
+  const totalAdmin = users.filter((u: User) => u.role === 'ADMIN').length;
+  const totalUserBiasa = users.filter((u: User) => u.role === 'USER').length;
+  const totalVerified = users.filter((u: User) => u.emailVerified).length;
 
   // Filter Data Tabel
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user: User) => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterRole === "Semua" ? true : user.role === filterRole;
@@ -109,23 +87,17 @@ export default function UserPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Kelola Data Pengguna</h1>
-            <p className="text-gray-500 text-sm mt-1">Tambah, edit, dan pantau peran pengguna sistem Anda (Mode Local Storage)</p>
+            <p className="text-gray-500 text-sm mt-1">Tambah, edit, dan pantau peran pengguna sistem Anda</p>
           </div>
 
           <div className="flex gap-3">
-            <button 
-              onClick={isFormOpen && !editUser ? () => setIsFormOpen(false) : handleAddNew} 
+            <Link 
+              href="/admin/users/create"
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-md"
             >
-              {isFormOpen && !editUser ? (
-                <span>Batal Tambah</span>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                  <span>Tambah User Baru</span>
-                </>
-              )}
-            </button>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+              <span>Tambah User Baru</span>
+            </Link>
           </div>
         </div>
 
@@ -133,28 +105,21 @@ export default function UserPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900">Total Pengguna</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{totalUsers}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalUsers}</p>
           </div>
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900">Admin Aktif</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{totalAdmin}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalAdmin}</p>
           </div>
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900">User Biasa</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{totalUserBiasa}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalUserBiasa}</p>
           </div>
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900">Email Terverifikasi</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{totalVerified}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalVerified}</p>
           </div>
         </div>
-
-        {/* FORM */}
-        {isFormOpen && (
-          <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
-            <UserForm key={editUser ? editUser.id : 'create-new-user'} onSubmit={handleSubmit} editUser={editUser} />
-          </div>
-        )}
 
         {/* TABLE SECTION */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -197,7 +162,14 @@ export default function UserPage() {
           {isLoading ? (
             <div className="p-12 text-center"><p className="text-gray-500 animate-pulse font-medium">Memuat data pengguna...</p></div>
           ) : (
-            <UserTable users={filteredUsers} onEdit={handleEdit} onDelete={handleDelete} />
+            <div className="relative">
+              {deleteMutation.isPending && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              )}
+              <UserTable users={filteredUsers} onEdit={handleEdit} onDelete={handleDelete} />
+            </div>
           )}
         </div>
 

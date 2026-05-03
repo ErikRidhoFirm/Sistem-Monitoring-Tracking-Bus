@@ -4,6 +4,8 @@ interface User {
   email: string;
   role: string;
   emailVerified: boolean;
+  image: string | null;
+  createdAt: string;
 }
 
 interface Props {
@@ -30,7 +32,7 @@ export default function UserTable({ users, onEdit, onDelete }: Props) {
           {users.length === 0 ? (
             <tr>
               <td colSpan={6} className="px-5 py-8 text-center text-gray-500 text-sm">
-                Belum ada data pengguna yang tersimpan di Local Storage.
+                Belum ada data pengguna yang tersimpan.
               </td>
             </tr>
           ) : (

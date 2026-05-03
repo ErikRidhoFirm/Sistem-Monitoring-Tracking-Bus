@@ -1,49 +1,65 @@
-import { useRouter } from "next/router";
-import { useState } from "react";
 import { AdminLayout } from "@/components/admin/layout";
 import UserForm from "@/components/user/UserForm";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 
 export default function EditUserPage() {
   const router = useRouter();
   const { id } = router.query;
+  const queryClient = useQueryClient();
 
-const [user, setUser] = useState<User | null>(null);
+  const { data: userData, isLoading } = useQuery({
+    queryKey: ["admin-user", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/users/${id}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.errors?.[0]?.message || "Gagal mengambil data");
+      return json;
+    },
+    enabled: !!id,
+  });
 
-  const handleUpdate = (data: Omit<User, "id">) => {
-    const stored = localStorage.getItem("users");
-    if (!stored) return;
-
-    let users: User[] = JSON.parse(stored);
-
-    users = users.map((u) =>
-      u.id === Number(id) ? { ...u, ...data } : u
-    );
-
-    localStorage.setItem("users", JSON.stringify(users));
-
-    router.push("/admin/users");
-  };
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.errors?.[0]?.message || "Gagal mengupdate data");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-user", id] });
+      toast.success("Berhasil mengupdate pengguna!");
+      router.push("/admin/users");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Edit User</h1>
-          <p className="text-muted-foreground text-sm">
-            Ubah data user sesuai kebutuhan
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Edit Data Pengguna</h1>
+          <p className="text-gray-500 text-sm mt-1">Ubah data pengguna sistem Anda</p>
         </div>
 
-        {user ? (
-          <UserForm onSubmit={handleUpdate} editUser={user} />
+        {isLoading ? (
+          <div className="p-12 text-center"><p className="text-gray-500 animate-pulse font-medium">Memuat data pengguna...</p></div>
+        ) : userData?.data ? (
+          <UserForm 
+            editUser={userData.data}
+            onSubmit={(data) => updateMutation.mutate(data)} 
+            isPending={updateMutation.isPending}
+          />
         ) : (
-          <p className="text-muted-foreground">Loading...</p>
+          <div className="p-12 text-center text-red-500 font-medium">Data pengguna tidak ditemukan.</div>
         )}
       </div>
     </AdminLayout>
