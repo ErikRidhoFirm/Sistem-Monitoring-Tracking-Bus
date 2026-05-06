@@ -53,7 +53,7 @@ export default function AdminPage() {
       value: overviewQuery.data?.users ?? "—",
       description: "Jumlah pengguna yang terdaftar dalam sistem.",
       icon: Users,
-      href: "/admin/settings",
+      href: "/admin/user",
     },
   ];
 
