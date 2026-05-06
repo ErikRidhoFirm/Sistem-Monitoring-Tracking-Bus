@@ -1,3 +1,5 @@
+import { Eye } from "lucide-react";
+
 interface User {
   id: string;
   name: string;
@@ -12,9 +14,10 @@ interface Props {
   users: User[];
   onEdit: (user: User) => void;
   onDelete: (id: string) => void;
+  onView: (user: User) => void;
 }
 
-export default function UserTable({ users, onEdit, onDelete }: Props) {
+export default function UserTable({ users, onEdit, onDelete, onView }: Props) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[800px]">
@@ -67,6 +70,13 @@ export default function UserTable({ users, onEdit, onDelete }: Props) {
                 </td>
                 
                 <td className="px-5 py-4 text-right flex justify-end gap-2">
+                  <button 
+                    onClick={() => onView(user)} 
+                    className="p-1.5 border border-blue-100 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-600 transition shadow-sm"
+                    title="Lihat Detail"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
                   <button 
                     onClick={() => onEdit(user)} 
                     className="p-1.5 border border-gray-200 rounded-md bg-white hover:bg-gray-50 text-gray-600 transition shadow-sm"

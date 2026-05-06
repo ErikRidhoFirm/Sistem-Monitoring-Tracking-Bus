@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/admin/layout";
 import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 type MessageItem = {
   id: number;
@@ -22,6 +23,7 @@ export default function MqttDebugPage() {
   const [topic, setTopic] = useState(DEFAULT_TOPIC);
   const [username, setUsername] = useState(DEFAULT_USERNAME);
   const [password, setPassword] = useState(DEFAULT_PASSWORD);
+  const [showPassword, setShowPassword] = useState(false);
   const [clientId, setClientId] = useState(
     () => `buswy-debug-${Math.random().toString(16).slice(2, 10)}`,
   );
@@ -170,13 +172,22 @@ export default function MqttDebugPage() {
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Password (Opsional)
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                placeholder="password broker"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm outline-none focus:border-blue-500"
+                  placeholder="password broker"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div>

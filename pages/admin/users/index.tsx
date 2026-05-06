@@ -24,6 +24,10 @@ export default function UserPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState<"Semua" | "ADMIN" | "USER">("Semua");
 
+  // State untuk Modal View
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
   // GET: Mengambil data user
   const { data: usersData, isLoading } = useQuery<{ data: User[] }>({
     queryKey: ["admin-users"],
@@ -58,6 +62,11 @@ export default function UserPage() {
 
   const handleEdit = (user: User) => {
     router.push(`/admin/users/${user.id}`);
+  };
+
+  const handleView = (user: User) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -168,12 +177,87 @@ export default function UserPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               )}
-              <UserTable users={filteredUsers} onEdit={handleEdit} onDelete={handleDelete} />
+              <UserTable users={filteredUsers} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
             </div>
           )}
         </div>
 
       </div>
+
+      {/* VIEW MODAL */}
+      {isViewModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900">Detail Pengguna</h3>
+              <button 
+                onClick={() => setIsViewModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition p-1 rounded-md hover:bg-gray-100"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4 mb-6">
+                {selectedUser.image ? (
+                  <img src={selectedUser.image} alt={selectedUser.name} className="w-16 h-16 rounded-full object-cover border border-gray-200" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-bold">
+                    {selectedUser.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-lg font-bold text-gray-900">{selectedUser.name}</h4>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mt-1">
+                    {selectedUser.role}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-y-4 gap-x-2 text-sm">
+                <div className="font-semibold text-gray-500">ID Pengguna</div>
+                <div className="col-span-2 text-gray-900 font-medium break-all">{selectedUser.id}</div>
+                
+                <div className="font-semibold text-gray-500">Email</div>
+                <div className="col-span-2 text-gray-900">{selectedUser.email}</div>
+                
+                <div className="font-semibold text-gray-500">Status Email</div>
+                <div className="col-span-2">
+                  {selectedUser.emailVerified ? (
+                    <span className="text-green-600 font-medium flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                      Terverifikasi
+                    </span>
+                  ) : (
+                    <span className="text-orange-600 font-medium flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                      Belum Terverifikasi
+                    </span>
+                  )}
+                </div>
+
+                <div className="font-semibold text-gray-500">Dibuat Pada</div>
+                <div className="col-span-2 text-gray-900">
+                  {new Date(selectedUser.createdAt).toLocaleDateString("id-ID", { 
+                    year: 'numeric', month: 'long', day: 'numeric', 
+                    hour: '2-digit', minute:'2-digit' 
+                  })}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => setIsViewModalOpen(false)}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
