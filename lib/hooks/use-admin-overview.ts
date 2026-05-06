@@ -9,7 +9,9 @@ type AdminOverview = {
   inactiveBuses: number;
   routes: number;
   stations: number;
+  devices: number;
   cards: number;
+  activeCards: number;
   transactions: number;
   totalPassengerCount: number;
   uptimeSeconds: number;
