@@ -98,14 +98,25 @@ export function buildBusPopupHtml(
     datetime?: string;
     nearestStop?: string;
     etaMinutes?: number;
+    status?: string;
+    stationName?: string;
+    passengerCount?: number;
+    maxPassengers?: number;
   },
 ): string {
   const speedValue =
     typeof details.speed === "number" ? details.speed.toFixed(4) : "-";
+  const passengerLabel =
+    typeof details.passengerCount === "number"
+      ? `${details.passengerCount}/${details.maxPassengers ?? "-"}`
+      : "-";
 
   return (
     `<div class="bus-popup-card">` +
     `<div class="bus-popup-title">${busCode}</div>` +
+    `<div class="bus-popup-line"><span>Status</span><strong>${details.status ?? "-"}</strong></div>` +
+    `<div class="bus-popup-line"><span>Halte</span><strong>${details.stationName ?? "-"}</strong></div>` +
+    `<div class="bus-popup-line"><span>Penumpang</span><strong>${passengerLabel}</strong></div>` +
     `<div class="bus-popup-line"><span>Kecepatan</span><strong>${speedValue}</strong></div>` +
     `<div class="bus-popup-line"><span>Last Update</span><strong>${details.datetime ?? "-"}</strong></div>` +
     `<div class="bus-popup-line"><span>Posisi</span><strong>${details.nearestStop ?? "-"}</strong></div>` +

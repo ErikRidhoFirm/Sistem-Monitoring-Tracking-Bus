@@ -3,6 +3,8 @@ import {
   LocateFixed,
   Map as MapIcon,
   Mountain,
+  PanelLeftClose,
+  PanelLeftOpen,
   SlidersHorizontal,
 } from "lucide-react";
 import type { RefObject } from "react";
@@ -12,9 +14,11 @@ import type { MapStyleKey } from "@/lib/realtime-map-types";
 type FloatingMapControlsProps = {
   isViewMenuOpen: boolean;
   isTiltedView: boolean;
+  isSidebarOpen: boolean;
   mapStyle: MapStyleKey;
   menuRef: RefObject<HTMLDivElement | null>;
   menuTriggerRef: RefObject<HTMLButtonElement | null>;
+  onToggleSidebar: () => void;
   onToggleViewMenu: () => void;
   onToggleTiltedView: () => void;
   onSelectMapStyle: (value: MapStyleKey) => void;
@@ -24,9 +28,11 @@ type FloatingMapControlsProps = {
 export function FloatingMapControls({
   isViewMenuOpen,
   isTiltedView,
+  isSidebarOpen,
   mapStyle,
   menuRef,
   menuTriggerRef,
+  onToggleSidebar,
   onToggleViewMenu,
   onToggleTiltedView,
   onSelectMapStyle,
@@ -35,6 +41,19 @@ export function FloatingMapControls({
   return (
     <div className="pointer-events-auto px-4 pb-2 pt-4 md:px-6 md:pt-5">
       <div className="inline-flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200/80 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+          aria-label={isSidebarOpen ? "Tutup sidebar bus" : "Buka sidebar bus"}
+        >
+          {isSidebarOpen ? (
+            <PanelLeftClose className="h-4 w-4" />
+          ) : (
+            <PanelLeftOpen className="h-4 w-4" />
+          )}
+        </button>
+
         <div className="rounded-lg border border-slate-200/80 bg-white/92 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shadow-sm backdrop-blur-sm">
           Buswy Live Tracking
         </div>
