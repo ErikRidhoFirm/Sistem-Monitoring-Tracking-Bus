@@ -35,7 +35,21 @@ const schema = z.object({
   deviceKey: z.string(),
   latitude: z.coerce.number().optional(),
   longitude: z.coerce.number().optional(),
+  stationName: z.string().optional(),
 });
+
+const normalizeStationName = (value: string | undefined) => {
+  if (!value) {
+    return "-";
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.toLowerCase() == "null") {
+    return "-";
+  }
+
+  return trimmed;
+};
 
 export default async function handler(
   req: NextApiRequest,
@@ -197,6 +211,7 @@ export default async function handler(
           amount: isTapOut ? 0 : PRICE,
           latTap: payload.latitude,
           lngTap: payload.longitude,
+          stationName: normalizeStationName(payload.stationName),
         },
       });
 

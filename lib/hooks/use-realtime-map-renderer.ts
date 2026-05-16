@@ -107,6 +107,10 @@ type UseRealtimeMapRendererParams = {
   mapRef: RefObject<HTMLDivElement | null>;
   routes: RealtimeMapRoute[];
   busCodeById: Record<string, string>;
+  busStatusById: Record<string, string>;
+  busStationById: Record<string, string>;
+  busPassengersById: Record<string, number>;
+  busMaxPassengersById: Record<string, number>;
   activeRouteStations: RealtimeMapStation[];
   activeRouteId: string | null;
   activeRouteCoordinates: Coordinate[];
@@ -118,6 +122,10 @@ type UseRealtimeMapRendererParams = {
   token?: string;
   userLocationRef: MutableRefObject<Coordinate | null>;
   onTokenMissingChange: (value: boolean) => void;
+  onBusTelemetry?: (payload: BusTelemetry) => void;
+  onFeedStatusChange?: (
+    status: "connected" | "connecting" | "disconnected",
+  ) => void;
 };
 
 function upsertUserLocationSource(
@@ -183,6 +191,10 @@ export function useRealtimeMapRenderer({
   mapRef,
   routes,
   busCodeById,
+  busStatusById,
+  busStationById,
+  busPassengersById,
+  busMaxPassengersById,
   activeRouteStations,
   activeRouteId,
   activeRouteCoordinates,
@@ -194,9 +206,37 @@ export function useRealtimeMapRenderer({
   token,
   userLocationRef,
   onTokenMissingChange,
+  onBusTelemetry,
+  onFeedStatusChange,
 }: UseRealtimeMapRendererParams) {
   const mapInstanceRef = useRef<import("mapbox-gl").Map | null>(null);
   const activeBusIdRef = useRef<string | null>(null);
+  const busCodeByIdRef = useRef(busCodeById);
+  const busStatusByIdRef = useRef(busStatusById);
+  const busStationByIdRef = useRef(busStationById);
+  const busPassengersByIdRef = useRef(busPassengersById);
+  const busMaxPassengersByIdRef = useRef(busMaxPassengersById);
+  const isPopupPinnedRef = useRef(false);
+
+  useEffect(() => {
+    busCodeByIdRef.current = busCodeById;
+  }, [busCodeById]);
+
+  useEffect(() => {
+    busStatusByIdRef.current = busStatusById;
+  }, [busStatusById]);
+
+  useEffect(() => {
+    busStationByIdRef.current = busStationById;
+  }, [busStationById]);
+
+  useEffect(() => {
+    busPassengersByIdRef.current = busPassengersById;
+  }, [busPassengersById]);
+
+  useEffect(() => {
+    busMaxPassengersByIdRef.current = busMaxPassengersById;
+  }, [busMaxPassengersById]);
 
   useEffect(() => {
     if (!mapRef.current) {
@@ -218,6 +258,7 @@ export function useRealtimeMapRenderer({
     let popup: import("mapbox-gl").Popup | null = null;
     let lastCameraFollowAt = 0;
     let mounted = true;
+    let animationFrameId: number | null = null;
 
     const initMap = async () => {
       const mapboxgl = (await import("mapbox-gl")).default;
@@ -284,6 +325,8 @@ export function useRealtimeMapRenderer({
           return;
         }
 
+        const mapInstance = map;
+
         await ensureMapImage({
           map,
           imageId: "station-lucide-icon",
@@ -318,14 +361,6 @@ export function useRealtimeMapRenderer({
                 coordinates: [station.longitude, station.latitude],
               },
             })),
-          },
-        });
-
-        map.addSource("bus-point", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: [],
           },
         });
 
@@ -408,100 +443,91 @@ export function useRealtimeMapRenderer({
           },
         });
 
-        map.addLayer({
-          id: "bus-points",
-          type: "symbol",
-          source: "bus-point",
-          layout: {
-            "icon-image": "bus-lucide-icon",
-            "icon-size": 0.52,
-            "icon-anchor": "center",
-            "icon-allow-overlap": true,
-            "icon-ignore-placement": true,
-          },
-        });
+        const busMarkers = new Map<string, mapboxgl.Marker>();
+        const busTargets = new Map<
+          string,
+          { from: Coordinate; to: Coordinate; start: number }
+        >();
+        const markerAnimationDurationMs = 900;
 
-        map.addLayer({
-          id: "bus-labels",
-          type: "symbol",
-          source: "bus-point",
-          layout: {
-            "text-field": ["coalesce", ["get", "busCode"], ["get", "busId"]],
-            "text-size": 11,
-            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-            "text-offset": [0, 1.6],
-          },
-          paint: {
-            "text-color": "#173330",
-            "text-halo-color": "#ffffff",
-            "text-halo-width": 1,
-          },
-        });
-
-        map.on("mouseenter", "bus-points", () => {
-          if (!map) {
-            return;
-          }
-          map.getCanvas().style.cursor = "pointer";
-        });
-
-        map.on("mouseleave", "bus-points", () => {
-          if (!map) {
-            return;
-          }
-          map.getCanvas().style.cursor = "";
-        });
-
-        map.on("click", "bus-points", (event) => {
-          if (!map) {
+        const buildPopupForBus = (
+          selectedBusId: string,
+          position: Coordinate,
+        ) => {
+          const selectedBus = busesById.get(selectedBusId);
+          if (!selectedBus) {
             return;
           }
 
-          const feature = event.features?.[0];
-          if (!feature || feature.geometry.type !== "Point") {
-            return;
-          }
-
-          const coordinates = [...feature.geometry.coordinates] as [
-            number,
-            number,
-          ];
-          const props = feature.properties ?? {};
-          const selectedBusId = String(props.busId ?? "-");
-          const selectedBusCode = String(
-            props.busCode ?? busCodeById[selectedBusId] ?? selectedBusId,
-          );
-          const selectedSpeed = Number(props.speed ?? props.speedKph ?? 0);
-          const selectedNearestStop = String(props.nearestStop ?? "-");
-          const selectedEtaMinutes = Number(props.etaMinutes ?? 0);
-          const selectedDatetime = String(props.datetime ?? "-");
-
-          activeBusIdRef.current = selectedBusId;
+          const selectedBusCode =
+            busCodeByIdRef.current[selectedBusId] ?? selectedBusId;
 
           popup?.remove();
           popup = new mapboxgl.Popup({
-            closeButton: false,
+            closeButton: true,
             closeOnMove: false,
             offset: 16,
             className: "bus-info-popup",
           })
-            .setLngLat(coordinates)
+            .setLngLat(position)
             .setHTML(
               buildBusPopupHtml(selectedBusCode, {
-                speed: selectedSpeed,
-                nearestStop: selectedNearestStop,
-                etaMinutes: selectedEtaMinutes,
-                datetime: selectedDatetime,
+                speed: selectedBus.speed,
+                nearestStop: selectedBus.nearestStop,
+                etaMinutes: selectedBus.etaMinutes,
+                datetime: selectedBus.datetime,
+                status:
+                  busStatusByIdRef.current[selectedBusId] ?? selectedBus.status,
+                stationName: busStationByIdRef.current[selectedBusId] ?? "-",
+                passengerCount: busPassengersByIdRef.current[selectedBusId],
+                maxPassengers: busMaxPassengersByIdRef.current[selectedBusId],
               }),
             )
-            .addTo(map);
-        });
+            .addTo(mapInstance);
+
+          popup.on("close", () => {
+            isPopupPinnedRef.current = false;
+            popup = null;
+          });
+        };
+
+        const animateMarkers = (timestamp: number) => {
+          if (!mapInstance || !mounted) {
+            return;
+          }
+
+          busTargets.forEach((target, busId) => {
+            const marker = busMarkers.get(busId);
+            if (!marker) {
+              return;
+            }
+
+            const elapsed = Math.max(timestamp - target.start, 0);
+            const progress = Math.min(elapsed / markerAnimationDurationMs, 1);
+            const lng =
+              target.from[0] + (target.to[0] - target.from[0]) * progress;
+            const lat =
+              target.from[1] + (target.to[1] - target.from[1]) * progress;
+            const nextPosition: Coordinate = [lng, lat];
+            marker.setLngLat(nextPosition);
+
+            if (progress >= 1) {
+              busTargets.delete(busId);
+            }
+
+            if (activeBusIdRef.current === busId && popup) {
+              buildPopupForBus(busId, nextPosition);
+            }
+          });
+
+          animationFrameId = requestAnimationFrame(animateMarkers);
+        };
+
+        animationFrameId = requestAnimationFrame(animateMarkers);
 
         const feed = createRealtimeBusFeed({
-          brokerUrl: process.env.NEXT_PUBLIC_MQTT_BROKER_URL,
-          topic: process.env.NEXT_PUBLIC_MQTT_TOPIC,
-          username: process.env.NEXT_PUBLIC_MQTT_USERNAME,
-          password: process.env.NEXT_PUBLIC_MQTT_PASSWORD,
+          wsUrl: process.env.NEXT_PUBLIC_REALTIME_WS_URL,
+          onStatusChange: onFeedStatusChange,
         });
 
         const busesById = new Map<string, BusTelemetry>();
@@ -518,31 +544,69 @@ export function useRealtimeMapRenderer({
               activeBusIdRef.current = payload.busId;
             }
 
-            const shouldSyncPanel =
-              (activeBusIdRef.current ?? payload.busId) === payload.busId;
+            const marker = busMarkers.get(payload.busId);
+            if (!marker) {
+              const markerEl = document.createElement("div");
+              markerEl.style.width = "26px";
+              markerEl.style.height = "26px";
+              markerEl.style.display = "block";
+              markerEl.style.padding = "4px";
+              markerEl.style.cursor = "pointer";
+              markerEl.style.pointerEvents = "auto";
+              markerEl.style.backgroundImage = `url("${buildBusMarkerSvgDataUrl()}")`;
+              markerEl.style.backgroundSize = "contain";
+              markerEl.style.backgroundRepeat = "no-repeat";
+              markerEl.style.backgroundPosition = "center";
+              markerEl.style.transformOrigin = "center";
+
+              const nextMarker = new mapboxgl.Marker({
+                element: markerEl,
+                anchor: "center",
+              })
+                .setLngLat(payload.position)
+                .addTo(mapInstance);
+
+              markerEl.addEventListener("mouseenter", () => {
+                mapInstance.getCanvas().style.cursor = "pointer";
+              });
+
+              markerEl.addEventListener("mouseleave", () => {
+                mapInstance.getCanvas().style.cursor = "";
+              });
+
+              markerEl.addEventListener("click", (event) => {
+                event.stopPropagation();
+                activeBusIdRef.current = payload.busId;
+                isPopupPinnedRef.current = true;
+                buildPopupForBus(payload.busId, payload.position);
+              });
+
+              busMarkers.set(payload.busId, nextMarker);
+              busTargets.set(payload.busId, {
+                from: payload.position,
+                to: payload.position,
+                start: performance.now(),
+              });
+            } else {
+              const current = marker.getLngLat();
+              busTargets.set(payload.busId, {
+                from: [current.lng, current.lat],
+                to: payload.position,
+                start: performance.now(),
+              });
+            }
 
             const selectedBusId = activeBusIdRef.current;
-            const selectedBus = selectedBusId
-              ? busesById.get(selectedBusId)
-              : undefined;
-
-            if (popup && selectedBus && shouldSyncPanel) {
-              popup.setLngLat(selectedBus.position).setHTML(
-                buildBusPopupHtml(
-                  busCodeById[selectedBus.busId] ?? selectedBus.busId,
-                  {
-                    speed: selectedBus.speed,
-                    nearestStop: selectedBus.nearestStop,
-                    etaMinutes: selectedBus.etaMinutes,
-                    datetime: selectedBus.datetime,
-                  },
-                ),
-              );
-
+            if (
+              selectedBusId === payload.busId &&
+              popup &&
+              isPopupPinnedRef.current
+            ) {
+              buildPopupForBus(payload.busId, payload.position);
               const now = Date.now();
               if (now - lastCameraFollowAt > 450) {
-                map.easeTo({
-                  center: selectedBus.position,
+                mapInstance.easeTo({
+                  center: payload.position,
                   duration: 650,
                   essential: true,
                 });
@@ -550,36 +614,7 @@ export function useRealtimeMapRenderer({
               }
             }
 
-            const features = Array.from(busesById.values()).map((bus) => ({
-              type: "Feature" as const,
-              properties: {
-                busId: bus.busId,
-                busCode: busCodeById[bus.busId] ?? bus.busId,
-                nearestStop: bus.nearestStop,
-                etaMinutes: bus.etaMinutes,
-                speedKph: bus.speedKph,
-                speed: bus.speed,
-                alt: bus.alt,
-                course: bus.course,
-                sat: bus.sat,
-                hdop: bus.hdop,
-                valid: bus.valid,
-                datetime: bus.datetime,
-              },
-              geometry: {
-                type: "Point" as const,
-                coordinates: bus.position,
-              },
-            }));
-
-            const source = map.getSource("bus-point") as
-              | import("mapbox-gl").GeoJSONSource
-              | undefined;
-
-            source?.setData({
-              type: "FeatureCollection",
-              features,
-            });
+            onBusTelemetry?.(payload);
           },
           {
             routeCoordinates: feedCoordinates,
@@ -596,6 +631,9 @@ export function useRealtimeMapRenderer({
 
     return () => {
       mounted = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       stopFeed?.();
       popup?.remove();
       map?.remove();
@@ -607,12 +645,13 @@ export function useRealtimeMapRenderer({
     activeRouteStations,
     activeStopNames,
     allStations,
-    busCodeById,
     hasMapData,
     isTiltedView,
     mapRef,
     mapStyle,
     onTokenMissingChange,
+    onBusTelemetry,
+    onFeedStatusChange,
     routes,
     token,
     userLocationRef,
