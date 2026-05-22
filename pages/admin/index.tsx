@@ -86,6 +86,11 @@ export default function AdminPage() {
       value: profitQuery.data?.monthlyProfit,
       description: "Akumulasi transaksi sejak awal bulan.",
     },
+    {
+      label: "Profit Tahunan",
+      value: profitQuery.data?.yearlyProfit,
+      description: "Akumulasi transaksi sejak awal tahun.",
+    },
   ];
 
   return (
@@ -196,7 +201,7 @@ export default function AdminPage() {
               ) : null}
 
               {!profitQuery.isLoading && !profitQuery.isError ? (
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {profitItems.map((item) => (
                     <div
                       key={item.label}

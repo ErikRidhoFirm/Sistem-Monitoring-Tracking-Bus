@@ -25,6 +25,10 @@ function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
 }
 
+function startOfYear(date: Date) {
+  return new Date(date.getFullYear(), 0, 1, 0, 0, 0, 0);
+}
+
 async function sumProfit(where: Record<string, unknown>) {
   const aggregate = await prisma.transaction.aggregate({
     where,
@@ -83,7 +87,7 @@ export default async function handler(
   const busId = parseQuery.data.busId;
   const busFilter = busId ? { busId } : {};
 
-  const [dailyProfit, weeklyProfit, monthlyProfit] = await Promise.all([
+  const [dailyProfit, weeklyProfit, monthlyProfit, yearlyProfit] = await Promise.all([
     sumProfit({
       ...busFilter,
       createdAt: {
@@ -102,6 +106,12 @@ export default async function handler(
         gte: startOfMonth(now),
       },
     }),
+    sumProfit({
+      ...busFilter,
+      createdAt: {
+        gte: startOfYear(now),
+      },
+    }),
   ]);
 
   return ApiResponses.success(res, {
@@ -109,5 +119,6 @@ export default async function handler(
     dailyProfit,
     weeklyProfit,
     monthlyProfit,
+    yearlyProfit,
   });
 }
