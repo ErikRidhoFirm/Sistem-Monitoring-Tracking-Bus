@@ -174,7 +174,9 @@ Contoh `BUS_FULL`:
 
 ## Business Constants
 
-- Tarif tap in tetap: `2500`
+- Tarif ditentukan per bus melalui field `price` pada entitas Bus. Jika nilai `price` belum di-set, server menggunakan fallback `2500`.
+
+Catatan: setelah mengaktifkan `price` per bus, setiap tap akan memotong saldo sesuai `bus.price`.
 
 ## Notes for Device/Firmware Integration
 
