@@ -7,6 +7,7 @@ export type AdminProfitSummary = {
   dailyProfit: number;
   weeklyProfit: number;
   monthlyProfit: number;
+  yearlyProfit: number;
 };
 
 const profitSummaryKeys = {
