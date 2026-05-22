@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 
-const PRICE = 2500;
+// price will be loaded per-bus from DB; fallback to 2500 if missing
 
 class TapTransactionError extends Error {
   status: number;
@@ -169,6 +169,7 @@ export default async function handler(
           id: true,
           passengerCount: true,
           maxPassengers: true,
+          price: true,
         },
       });
 
@@ -188,7 +189,9 @@ export default async function handler(
         });
       }
 
-      if (isTapIn && card.balance < PRICE) {
+      const price = bus.price ?? 2500;
+
+      if (isTapIn && card.balance < price) {
         throw new TapTransactionError(
           409,
           "INSUFFICIENT_BALANCE",
@@ -196,7 +199,7 @@ export default async function handler(
           {
             field: "rfidTag",
             meta: {
-              requiredAmount: PRICE,
+              requiredAmount: price,
               currentBalance: card.balance,
             },
           },
@@ -208,7 +211,7 @@ export default async function handler(
           rfidTag: payload.rfidTag,
           busId: payload.busId,
           type: isTapOut ? TransactionType.OUT : TransactionType.IN,
-          amount: isTapOut ? 0 : PRICE,
+          amount: isTapOut ? 0 : price,
           latTap: payload.latitude,
           lngTap: payload.longitude,
           stationName: normalizeStationName(payload.stationName),
@@ -222,7 +225,7 @@ export default async function handler(
         data: {
           isInside: isTapIn,
           lastBusId: isTapIn ? payload.busId : null,
-          ...(isTapIn ? { balance: { decrement: PRICE } } : {}),
+          ...(isTapIn ? { balance: { decrement: price } } : {}),
         },
         include: {
           user: {

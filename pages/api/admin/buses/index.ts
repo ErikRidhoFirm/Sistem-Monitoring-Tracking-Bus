@@ -13,6 +13,7 @@ const createBusSchema = z.object({
   busCode: z.string().trim().min(1, "Kode bus wajib diisi"),
   plateNumber: z.string().trim().min(1, "Nomor polisi wajib diisi"),
   isActive: z.boolean().optional().default(true),
+  price: z.coerce.number().int().min(0).optional().default(2500),
   maxPassengers: z.coerce
     .number()
     .int()
@@ -172,6 +173,7 @@ export default async function handler(
         busCode: payload.busCode,
         plateNumber: payload.plateNumber,
         isActive: payload.isActive,
+        price: payload.price,
         maxPassengers: payload.maxPassengers,
         routeId: payload.routeId ?? undefined,
       },

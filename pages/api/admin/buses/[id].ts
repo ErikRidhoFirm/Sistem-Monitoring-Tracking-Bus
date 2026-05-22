@@ -18,6 +18,7 @@ const updateBusSchema = z
       .min(1, "Nomor polisi wajib diisi")
       .optional(),
     isActive: z.boolean().optional(),
+    price: z.coerce.number().int().min(0).optional(),
     maxPassengers: z.coerce
       .number()
       .int()
@@ -140,6 +141,7 @@ export default async function handler(
           busCode: payload.busCode,
           plateNumber: payload.plateNumber,
           isActive: payload.isActive,
+          price: payload.price,
           maxPassengers: payload.maxPassengers,
           routeId:
             payload.routeId === null ? null : (payload.routeId ?? undefined),
