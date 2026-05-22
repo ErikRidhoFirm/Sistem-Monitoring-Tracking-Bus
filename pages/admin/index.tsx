@@ -1,16 +1,29 @@
+import { useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/admin/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bus, CreditCard, ReceiptText, Sparkles, Users, Wifi } from "lucide-react";
+import { useAdminBuses } from "@/lib/hooks/use-admin-buses";
 import { useAdminOverview } from "@/lib/hooks/use-admin-overview";
+import { useAdminProfitSummary } from "@/lib/hooks/use-admin-profit-summary";
 import { useAdminTodayTransactions } from "@/lib/hooks/use-admin-today-transactions";
 
 
 
 export default function AdminPage() {
+  const [selectedBusId, setSelectedBusId] = useState<string | "ALL">("ALL");
   const overviewQuery = useAdminOverview();
+  const busesQuery = useAdminBuses("");
+  const profitQuery = useAdminProfitSummary(selectedBusId);
   const transactionsQuery = useAdminTodayTransactions(5);
+
+  const formatCurrency = (value: number | undefined) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(value ?? 0);
 
   const metricItems = [
     {
@@ -57,6 +70,24 @@ export default function AdminPage() {
     },
   ];
 
+  const profitItems = [
+    {
+      label: "Profit Harian",
+      value: profitQuery.data?.dailyProfit,
+      description: "Akumulasi transaksi hari ini.",
+    },
+    {
+      label: "Profit Mingguan",
+      value: profitQuery.data?.weeklyProfit,
+      description: "Akumulasi transaksi sejak awal minggu.",
+    },
+    {
+      label: "Profit Bulanan",
+      value: profitQuery.data?.monthlyProfit,
+      description: "Akumulasi transaksi sejak awal bulan.",
+    },
+  ];
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -74,14 +105,34 @@ export default function AdminPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <select
+              aria-label="Filter bus"
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-primary"
+              value={selectedBusId}
+              onChange={(event) => setSelectedBusId(event.target.value as string | "ALL")}
+            >
+              <option value="ALL">All bus</option>
+              {busesQuery.data?.buses.map((bus) => (
+                <option key={bus.id} value={bus.id}>
+                  {bus.busCode} - {bus.plateNumber}
+                </option>
+              ))}
+            </select>
             <Button
               size="sm"
               variant="secondary"
               onClick={() => {
                 overviewQuery.refetch();
+                busesQuery.refetch();
+                profitQuery.refetch();
                 transactionsQuery.refetch();
               }}
-              disabled={overviewQuery.isFetching || transactionsQuery.isFetching}
+              disabled={
+                overviewQuery.isFetching ||
+                busesQuery.isFetching ||
+                profitQuery.isFetching ||
+                transactionsQuery.isFetching
+              }
             >
               Refresh data
             </Button>
@@ -126,6 +177,49 @@ export default function AdminPage() {
         <section>
           <Card>
             <CardHeader>
+              <CardTitle>Profit Bus</CardTitle>
+              <CardDescription>
+                Menampilkan profit harian, mingguan, dan bulanan untuk semua armada atau satu bus tertentu.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {profitQuery.isLoading ? (
+                <p className="text-sm text-muted-foreground">Memuat profit...</p>
+              ) : null}
+
+              {profitQuery.isError ? (
+                <p className="text-sm text-destructive">
+                  {profitQuery.error instanceof Error
+                    ? profitQuery.error.message
+                    : "Gagal memuat profit."}
+                </p>
+              ) : null}
+
+              {!profitQuery.isLoading && !profitQuery.isError ? (
+                <div className="grid gap-4 md:grid-cols-3">
+                  {profitItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-3xl border border-border bg-background p-5 shadow-sm"
+                    >
+                      <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                        {formatCurrency(item.value)}
+                      </p>
+                      <p className="mt-3 text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section>
+          <Card>
+            <CardHeader>
               <CardTitle>5 Transaksi Terakhir Hari Ini</CardTitle>
               <CardDescription>
                 Menampilkan transaksi pengguna dari awal hari hingga sekarang.
@@ -160,6 +254,9 @@ export default function AdminPage() {
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {item.card.user?.name ?? item.card.rfidTag} • {item.bus.busCode}
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-foreground">
+                              {formatCurrency(item.amount)}
                             </p>
                           </div>
                           <div className="text-right">
