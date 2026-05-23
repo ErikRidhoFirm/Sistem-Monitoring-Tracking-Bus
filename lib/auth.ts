@@ -7,7 +7,8 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_BASE_URL || "http://localhost:3000",
   trustedOrigins: (process.env.BETTER_AUTH_ALLOWED_ORIGINS || "")
     .split(",")
-    .map((origin) => origin.trim()),
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 
   user: {
     additionalFields: {

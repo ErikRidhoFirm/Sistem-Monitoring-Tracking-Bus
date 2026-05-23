@@ -9,7 +9,10 @@ type SessionResponse = {
 } | null;
 
 async function getSession(request: NextRequest): Promise<SessionResponse> {
-  const sessionURL = new URL("/api/auth/get-session", request.nextUrl.origin);
+  const sessionURL = new URL(
+    "/api/auth/get-session",
+    process.env.APP_INTERNAL_URL || request.nextUrl.origin,
+  );
 
   const response = await fetch(sessionURL, {
     method: "GET",
