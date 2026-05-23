@@ -34,6 +34,7 @@ type BusFormValues = {
   routeId: string | null;
   isActive: boolean;
   maxPassengers: string;
+  price: string;
 };
 
 const defaultFormValues: BusFormValues = {
@@ -42,6 +43,7 @@ const defaultFormValues: BusFormValues = {
   routeId: null,
   isActive: true,
   maxPassengers: "50",
+  price: "2500",
 };
 
 export default function AdminBusPage() {
@@ -109,6 +111,7 @@ export default function AdminBusPage() {
       routeId: busItem.route?.id ?? null,
       isActive: busItem.isActive,
       maxPassengers: String(busItem.maxPassengers ?? 50),
+      price: String(busItem.price ?? 2500),
     });
     setIsDialogOpen(true);
   };
@@ -126,6 +129,7 @@ export default function AdminBusPage() {
     }
 
     const parsedMaxPassengers = Number(formValues.maxPassengers);
+    const parsedPrice = Number(formValues.price);
 
     if (!Number.isInteger(parsedMaxPassengers) || parsedMaxPassengers < 1) {
       toast.error("Kapasitas maksimal harus angka bulat minimal 1");
@@ -141,6 +145,7 @@ export default function AdminBusPage() {
             plateNumber: formValues.plateNumber,
             isActive: formValues.isActive,
             maxPassengers: parsedMaxPassengers,
+            price: parsedPrice,
             routeId: formValues.routeId,
           },
         });
@@ -151,6 +156,7 @@ export default function AdminBusPage() {
           plateNumber: formValues.plateNumber,
           isActive: formValues.isActive,
           maxPassengers: parsedMaxPassengers,
+          price: parsedPrice,
           routeId: formValues.routeId,
         });
         toast.success("Bus berhasil ditambahkan");
@@ -282,6 +288,7 @@ export default function AdminBusPage() {
                   <th className="px-4 py-3">Route</th>
                   <th className="px-4 py-3">Penumpang</th>
                   <th className="px-4 py-3">Kapasitas Maks</th>
+                  <th className="px-4 py-3">Harga</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Aksi</th>
                 </tr>
@@ -309,6 +316,13 @@ export default function AdminBusPage() {
                     </td>
                     <td className="px-4 py-4 align-top text-foreground">
                       {busItem.maxPassengers}
+                    </td>
+                    <td className="px-4 py-4 align-top text-foreground">
+                      {new Intl.NumberFormat("id-ID", {
+                        style: "currency",
+                        currency: "IDR",
+                        maximumFractionDigits: 0,
+                      }).format(busItem.price ?? 0)}
                     </td>
                     <td className="px-4 py-4 align-top">
                       <span
@@ -400,6 +414,18 @@ export default function AdminBusPage() {
             </div>
 
             <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="price">Harga (IDR)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  value={formValues.price}
+                  onChange={(event) =>
+                    setFormValues({ ...formValues, price: event.target.value })
+                  }
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="maxPassengers">Kapasitas Maksimal</Label>
                 <Input

@@ -105,30 +105,6 @@ export default function UserForm({ onSubmit, editUser, isPending }: Props) {
         {editUser && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Foto Profil (Opsional)</label>
-              <div className="flex items-center gap-3">
-                {image ? (
-                  <img src={image} alt="Preview" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 text-gray-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  </div>
-                )}
-                <input 
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange} 
-                  className="w-full bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" 
-                />
-              </div>
-              {image && (
-                <button type="button" onClick={() => setImage("")} className="text-xs text-red-500 mt-1 hover:underline">
-                  Hapus Foto
-                </button>
-              )}
-            </div>
-            
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Role / Peran</label>
               <select 
                 value={role} 
