@@ -1,0 +1,12 @@
+node_modules
+.next
+.env
+.env.*
+.git
+.gitignore
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+nginx
+npm-debug.log
+bun.lockb.bak

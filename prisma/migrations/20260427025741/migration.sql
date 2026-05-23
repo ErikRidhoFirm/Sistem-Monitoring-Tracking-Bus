@@ -7,9 +7,14 @@
 
 */
 -- AlterTable
+ALTER TABLE "transaction" DROP CONSTRAINT "transaction_rfidTag_fkey";
+
 ALTER TABLE "card" DROP CONSTRAINT "card_pkey",
 ADD COLUMN     "id" TEXT NOT NULL,
 ADD CONSTRAINT "card_pkey" PRIMARY KEY ("id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "card_rfidTag_key" ON "card"("rfidTag");
+
+-- AddForeignKey
+ALTER TABLE "transaction" ADD CONSTRAINT "transaction_rfidTag_fkey" FOREIGN KEY ("rfidTag") REFERENCES "card"("rfidTag") ON DELETE RESTRICT ON UPDATE CASCADE;
