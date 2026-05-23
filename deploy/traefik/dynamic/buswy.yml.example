@@ -1,0 +1,14 @@
+http:
+  routers:
+    buswy:
+      rule: Host(`your-domain.com`) || Host(`www.your-domain.com`)
+      entryPoints:
+        - websecure
+      service: buswy
+      tls: {}
+
+  services:
+    buswy:
+      loadBalancer:
+        servers:
+          - url: http://app:9999

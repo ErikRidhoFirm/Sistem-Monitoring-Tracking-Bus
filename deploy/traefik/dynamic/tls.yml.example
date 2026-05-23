@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: /certs/cloudflare-origin.pem
+      keyFile: /certs/cloudflare-origin.key
