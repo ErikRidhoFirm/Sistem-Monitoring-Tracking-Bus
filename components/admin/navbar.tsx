@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Bell, Search, UserCircle } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,9 +34,7 @@ export function AdminNavbar() {
           <Button variant="ghost" size="icon" type="button" className="h-9 w-9 text-sidebar-foreground hover:bg-sidebar-accent">
             <Bell className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" type="button" className="h-9 w-9 text-sidebar-foreground hover:bg-sidebar-accent">
-            <UserCircle className="h-4 w-4" />
-          </Button>
+          {/* profile icon removed */}
         </div>
       </div>
     </div>
