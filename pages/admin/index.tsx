@@ -96,23 +96,26 @@ export default function AdminPage() {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        <section className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
-              BusControl Admin
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        <section className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between rounded-3xl bg-gradient-to-br from-[#18181A]/80 to-[#2A2A2E]/80 backdrop-blur-xl border border-white/5 p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+          <div className="relative z-10">
+            <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 backdrop-blur-md mb-2">
+              <Sparkles className="mr-1.5 h-3 w-3" />
+              Buswy Admin Dashboard
+            </div>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-5xl drop-shadow-md">
               Dashboard Operasional
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-              Ringkasan data dan 5 transaksi terakhir hari ini.
+            <p className="mt-4 max-w-2xl text-base text-zinc-300 font-medium leading-relaxed">
+              Ringkasan data dan transaksi terakhir secara real-time.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="relative z-10 flex flex-wrap items-center gap-3">
             <select
               aria-label="Filter bus"
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-primary"
+              className="h-10 rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-sm text-white shadow-inner outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50 backdrop-blur-md appearance-none"
               value={selectedBusId}
               onChange={(event) => setSelectedBusId(event.target.value as string | "ALL")}
             >
@@ -126,6 +129,7 @@ export default function AdminPage() {
             <Button
               size="sm"
               variant="secondary"
+              className="h-10 bg-white/10 text-white hover:bg-white/20 border border-white/10 backdrop-blur-md"
               onClick={() => {
                 overviewQuery.refetch();
                 busesQuery.refetch();
@@ -142,7 +146,7 @@ export default function AdminPage() {
               Refresh data
             </Button>
             <Link href="/admin/iot-devices">
-              <Button size="sm">Add new sensor</Button>
+              <Button size="sm" className="h-10 bg-primary/80 hover:bg-primary text-primary-foreground backdrop-blur-md shadow-lg shadow-primary/20">Add new sensor</Button>
             </Link>
           </div>
         </section>
@@ -151,21 +155,24 @@ export default function AdminPage() {
           {metricItems.map((metric) => {
             const Icon = metric.icon;
             const cardContent = (
-              <div className="rounded-3xl border border-border bg-card p-6 shadow-sm transition-colors duration-150 ease-in-out hover:border-primary hover:bg-primary/5">
-                <div className="flex items-center justify-between gap-4">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#18181A]/60 backdrop-blur-xl p-6 shadow-lg transition-all duration-300 hover:border-white/30 hover:bg-[#18181A]/80 hover:shadow-primary/20 hover:-translate-y-1">
+                <div className="absolute -right-6 -top-6 rounded-full bg-primary/10 p-8 blur-2xl transition-all group-hover:bg-primary/20" />
+                <div className="relative z-10 flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
                       {metric.label}
                     </p>
-                    <p className="mt-4 text-3xl font-semibold tracking-tight">
+                    <p className="mt-2 text-4xl font-bold tracking-tight text-white drop-shadow-sm">
                       {metric.value}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-slate-100 p-3 text-slate-900">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/80 to-primary/40 text-white shadow-inner">
                     <Icon className="h-6 w-6" />
                   </div>
                 </div>
-                <p className="mt-5 text-sm text-muted-foreground">{metric.description}</p>
+                <p className="relative z-10 mt-5 text-sm text-muted-foreground/90 font-medium">
+                  {metric.description}
+                </p>
               </div>
             );
 
@@ -180,14 +187,14 @@ export default function AdminPage() {
         </section>
 
         <section>
-          <Card>
-            <CardHeader>
-              <CardTitle>Profit Bus</CardTitle>
-              <CardDescription>
+          <Card className="overflow-hidden border-white/10 bg-[#18181A]/60 backdrop-blur-xl shadow-xl">
+            <CardHeader className="border-b border-white/5 bg-white/5 pb-4">
+              <CardTitle className="text-white drop-shadow-sm">Profit Bus</CardTitle>
+              <CardDescription className="text-zinc-400">
                 Menampilkan profit harian, mingguan, dan bulanan untuk semua armada atau satu bus tertentu.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {profitQuery.isLoading ? (
                 <p className="text-sm text-muted-foreground">Memuat profit...</p>
               ) : null}
@@ -205,15 +212,16 @@ export default function AdminPage() {
                   {profitItems.map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-3xl border border-border bg-background p-5 shadow-sm"
+                      className="group relative overflow-hidden rounded-2xl border border-white/5 bg-[#1a1a1e]/60 p-6 shadow-md transition-all duration-300 hover:border-primary/30 hover:bg-[#1f1f24]/80 backdrop-blur-md"
                     >
-                      <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                      <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-emerald-500/5 blur-2xl transition-all group-hover:bg-emerald-500/10" />
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 relative z-10">
                         {item.label}
                       </p>
-                      <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                      <p className="mt-3 text-3xl font-bold tracking-tight text-white drop-shadow-sm relative z-10">
                         {formatCurrency(item.value)}
                       </p>
-                      <p className="mt-3 text-sm text-muted-foreground">{item.description}</p>
+                      <p className="mt-4 text-sm text-zinc-400 font-medium relative z-10">{item.description}</p>
                     </div>
                   ))}
                 </div>
@@ -223,14 +231,14 @@ export default function AdminPage() {
         </section>
 
         <section>
-          <Card>
-            <CardHeader>
-              <CardTitle>5 Transaksi Terakhir Hari Ini</CardTitle>
-              <CardDescription>
+          <Card className="overflow-hidden border-white/10 bg-[#18181A]/60 backdrop-blur-xl shadow-xl">
+            <CardHeader className="border-b border-white/5 bg-white/5 pb-4">
+              <CardTitle className="text-white drop-shadow-sm">5 Transaksi Terakhir Hari Ini</CardTitle>
+              <CardDescription className="text-zinc-400">
                 Menampilkan transaksi pengguna dari awal hari hingga sekarang.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {transactionsQuery.isLoading ? (
                 <p className="text-sm text-muted-foreground">Memuat transaksi...</p>
               ) : null}
@@ -250,30 +258,49 @@ export default function AdminPage() {
                       <Link
                         key={item.id}
                         href={`/admin/rfid/${encodeURIComponent(item.card.rfidTag)}`}
-                        className="group block rounded-3xl border border-border bg-background p-4 transition-colors duration-150 ease-in-out hover:border-primary hover:bg-primary/5"
+                        className="group relative block overflow-hidden rounded-2xl border border-white/5 bg-[#1a1a1e]/40 p-5 transition-all duration-300 hover:border-primary/40 hover:bg-[#1a1a1e]/80 hover:shadow-lg hover:shadow-primary/5 backdrop-blur-sm"
                       >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="font-semibold text-foreground">
-                              {item.type === "IN" ? "Tap In" : item.type === "OUT" ? "Tap Out" : "Penalty"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.card.user?.name ?? item.card.rfidTag} • {item.bus.busCode}
-                            </p>
-                            <p className="mt-1 text-sm font-medium text-foreground">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent translate-x-[-100%] transition-transform duration-700 group-hover:translate-x-[100%]" />
+                        <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={
+                                item.type === "IN" 
+                                  ? "flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400"
+                                  : item.type === "OUT"
+                                  ? "flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-400"
+                                  : "flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/10 text-rose-400"
+                            }>
+                                <ReceiptText className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-white text-base">
+                                    {item.type === "IN" ? "Tap In" : item.type === "OUT" ? "Tap Out" : "Penalty"}
+                                  </p>
+                                  <span className="rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium text-zinc-300">
+                                    {item.bus.busCode}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-sm font-medium text-zinc-400">
+                                  {item.card.user?.name ?? item.card.rfidTag}
+                                </p>
+                            </div>
+                          </div>
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center mt-2 sm:mt-0 border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0">
+                            <p className="text-lg font-bold text-white">
                               {formatCurrency(item.amount)}
                             </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">
-                              {new Intl.DateTimeFormat("id-ID", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }).format(new Date(item.createdAt))}
-                            </p>
-                            <p className="text-sm font-semibold">
-                              {item.stationName ?? "Lokasi tidak tersedia"}
-                            </p>
+                            <div className="flex flex-col sm:items-end items-start text-right mt-1">
+                                <p className="text-xs font-medium text-zinc-500">
+                                {new Intl.DateTimeFormat("id-ID", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                }).format(new Date(item.createdAt))}
+                                </p>
+                                <p className="text-xs font-medium text-zinc-400 mt-0.5">
+                                {item.stationName ?? "Lokasi tidak tersedia"}
+                                </p>
+                            </div>
                           </div>
                         </div>
                       </Link>
