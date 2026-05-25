@@ -167,6 +167,11 @@ export function AdminSidebar({
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => {
+                if (isCollapsed) {
+                  onWidthChange?.(96);
+                }
+              }}
               className={cn(
                 "flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                 active
