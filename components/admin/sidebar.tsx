@@ -19,7 +19,6 @@ import { toast } from "react-hot-toast";
 
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 // Ikon yang kita gunakan untuk Sidebar dan Profile
 import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 
@@ -59,7 +58,6 @@ export function AdminSidebar({
   onWidthChange,
 }: AdminSidebarProps) {
   const router = useRouter();
-  const dragState = useRef<{ startX: number; startWidth: number } | null>(null);
   const isCollapsed = width <= 96;
 
   const handleSignOut = async () => {
@@ -74,34 +72,6 @@ export function AdminSidebar({
     await router.push("/auth/login");
   };
 
-  const clampWidth = (nextWidth: number) => {
-    const minWidth = 96;
-    const maxWidth = 360;
-    onWidthChange?.(Math.min(maxWidth, Math.max(minWidth, nextWidth)));
-  };
-
-  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    dragState.current = {
-      startX: event.clientX,
-      startWidth: width,
-    };
-
-    const handlePointerMove = (moveEvent: globalThis.PointerEvent) => {
-      if (!dragState.current) return;
-      const deltaX = moveEvent.clientX - dragState.current.startX;
-      clampWidth(dragState.current.startWidth + deltaX);
-    };
-
-    const handlePointerUp = () => {
-      dragState.current = null;
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-  };
 
   return (
     <aside
@@ -111,10 +81,7 @@ export function AdminSidebar({
       )}
       style={{ width: `${width}px` }}
     >
-      <div
-        className="absolute right-0 top-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-sidebar-accent/10"
-        onPointerDown={handlePointerDown}
-      />
+      {/* resize handle removed per request */}
       <div className="mb-6 px-4 pt-6">
         <div className="flex items-center justify-between">
           {/* TITLE (TIDAK HILANG, CUMA FADE) */}
@@ -126,13 +93,16 @@ export function AdminSidebar({
                 : "scale-100 opacity-100 w-auto",
             )}
           >
-            <div className="flex flex-col min-w-max">
-              <h1 className="text-xl font-bold tracking-tight text-primary leading-none">
-                BusControl
-              </h1>
-              <p className="text-xs text-muted-foreground mt-1">
-                IoT Monitoring System
-              </p>
+            <div className="flex items-center gap-3 min-w-max">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1f3d3a] text-sm font-bold tracking-wide text-[#f4f1e8]">
+                BW
+              </span>
+              <div>
+                <h1 className="text-lg font-semibold tracking-tight text-primary leading-none">
+                  Buswy
+                </h1>
+                <p className="mt-1 text-xs text-muted-foreground">Campus Transit</p>
+              </div>
             </div>
           </div>
 

@@ -12,9 +12,7 @@ export function AdminNavbar() {
     <div className="sticky top-0 z-30 border-b border-sidebar-border bg-sidebar py-3">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-8">
         {/* Branding */}
-        <div className="font-semibold text-primary shrink-0">
-          BusControl Admin
-        </div>
+        <div className="font-semibold text-primary shrink-0">Buswy Admin</div>
 
         {/* Search */}
         <div className="flex-1 max-w-xs">
