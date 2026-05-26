@@ -76,14 +76,15 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 ease-in-out",
+        "fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,#334a61_0%,#253545_100%)] text-sidebar-foreground shadow-[12px_0_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-in-out",
         className,
       )}
       style={{ width: `${width}px` }}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_18%,rgba(0,0,0,0.1)_100%)]" />
       {/* resize handle removed per request */}
-      <div className="mb-6 px-4 pt-6">
-        <div className="flex items-center justify-between">
+      <div className="relative z-10 mb-6 px-4 pt-6">
+        <div className="flex items-center justify-between gap-3">
           {/* TITLE (TIDAK HILANG, CUMA FADE) */}
           <div
             className={cn(
@@ -94,14 +95,17 @@ export function AdminSidebar({
             )}
           >
             <div className="flex items-center gap-3 min-w-max">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1f3d3a] text-sm font-bold tracking-wide text-[#f4f1e8]">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#ff9a4d_0%,#ff7a2f_100%)] text-sm font-bold tracking-wide text-white shadow-lg shadow-orange-500/25">
                 BW
               </span>
               <div>
-                <h1 className="text-lg font-semibold tracking-tight text-primary leading-none">
+                <h1
+                  className="text-lg font-semibold tracking-tight text-white leading-none"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
                   Buswy
                 </h1>
-                <p className="mt-1 text-xs text-muted-foreground">Campus Transit</p>
+                <p className="mt-1 text-xs text-[#f4f1e8]/70">Campus Transit</p>
               </div>
             </div>
           </div>
@@ -109,25 +113,19 @@ export function AdminSidebar({
           {/* TOGGLE */}
           <button
             onClick={() => onWidthChange?.(isCollapsed ? 256 : 96)}
-            className="rounded-lg p-2 hover:bg-sidebar-accent transition-all duration-300 flex items-center justify-center"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10"
           >
             {isCollapsed ? (
-              <>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                <GripVertical className="h-5 w-5 text-muted-foreground/50" />
-              </>
+              <ChevronRight className="h-5 w-5 text-slate-200" />
             ) : (
-              <div className="flex items-center gap-1">
-                <GripVertical className="h-5 w-5 text-muted-foreground/50" />
-                <ChevronLeft className="h-5 w-5 text-muted-foreground" />
-              </div>
+              <ChevronLeft className="h-5 w-5 text-slate-200" />
             )}
           </button>
         </div>
       </div>
 
       {/* ================= NAV ================= */}
-      <nav className="flex flex-1 flex-col gap-1 px-3">
+      <nav className="relative z-10 flex flex-1 flex-col gap-1 px-3">
         {items.map((item) => {
           const active =
             router.pathname === item.href ||
@@ -143,22 +141,24 @@ export function AdminSidebar({
                 }
               }}
               className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                "flex items-center rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+                  ? "bg-[linear-gradient(135deg,rgba(255,154,77,0.95)_0%,rgba(255,122,47,0.85)_100%)] text-[#f4f1e8] shadow-[0_12px_28px_rgba(255,122,47,0.22)]"
+                  : "text-[#f4f1e8]/72 hover:bg-white/8 hover:text-[#f4f1e8]",
               )}
             >
               {/* ICON (FIX SIZE) */}
-              <item.icon className="w-5 h-5 shrink-0" />
+              <span className="flex w-5 shrink-0 items-center justify-center">
+                <item.icon className="h-5 w-5" />
+              </span>
 
               {/* TEXT */}
               <span
                 className={cn(
-                  "transition-all duration-200 origin-left",
+                  "ml-3 inline-block overflow-hidden whitespace-nowrap transition-all duration-200 origin-left",
                   isCollapsed
-                    ? "scale-0 opacity-0 w-0"
-                    : "scale-100 opacity-100",
+                    ? "max-w-0 scale-0 opacity-0 ml-0"
+                    : "max-w-[180px] scale-100 opacity-100 ml-3",
                 )}
               >
                 {item.label}
@@ -169,10 +169,10 @@ export function AdminSidebar({
       </nav>
 
       {/* ================= FOOTER ================= */}
-      <div className="mb-3 flex w-full items-center px-2 py-2">
+      <div className="relative z-10 mb-3 flex w-full items-center px-4 py-2">
         {/* Container Avatar dengan lebar tetap agar tidak geser */}
-        <div className="flex w-12 shrink-0 justify-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-300">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(255,154,77,0.95)_0%,rgba(255,122,47,0.85)_100%)] text-white transition-transform duration-300 shadow-lg shadow-orange-500/20">
             <span className="text-sm font-semibold">AU</span>
           </div>
         </div>
@@ -180,24 +180,22 @@ export function AdminSidebar({
         {/* Info Teks */}
         <div
           className={cn(
-            "flex flex-col transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap",
+            "ml-2 flex flex-col overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
             isCollapsed
               ? "w-0 opacity-0 pointer-events-none"
-              : "w-auto opacity-100 ml-2", // Berikan margin kiri hanya saat terbuka
+              : "w-auto opacity-100",
           )}
         >
-          <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-            Admin User
-          </span>
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+          <span className="text-sm font-bold text-[#f4f1e8]">Admin User</span>
+          <span className="text-[10px] font-medium text-[#f4f1e8]/70 uppercase tracking-widest">
             Fleet Manager
           </span>
         </div>
       </div>
-      <div className="mt-auto border-t border-sidebar-border p-3">
+      <div className="relative z-10 mt-auto border-t border-white/10 p-3">
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition"
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-[#f4f1e8]/72 transition hover:bg-white/8 hover:text-[#f4f1e8]"
         >
           <LogOut className="w-5 h-5 shrink-0" />
 
