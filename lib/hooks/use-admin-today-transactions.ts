@@ -27,13 +27,27 @@ type TodayTransactionsResponse = {
 };
 
 export function useAdminTodayTransactions(limit = 5) {
+  return useAdminTodayTransactionsByBus(limit, "ALL");
+}
+
+export function useAdminTodayTransactionsByBus(limit = 5, busId: string | "ALL" = "ALL") {
   return useQuery({
-    queryKey: ["admin", "today-transactions", limit],
-    queryFn: () =>
-      requestApi<TodayTransactionsResponse>(
-        `/api/admin/transactions/recent?limit=${encodeURIComponent(limit)}`,
-      ),
-    staleTime: 30 * 1000,
+    queryKey: ["admin", "today-transactions", limit, busId],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set("limit", String(limit));
+
+      if (busId !== "ALL") {
+        params.set("busId", busId);
+      }
+
+      return requestApi<TodayTransactionsResponse>(
+        `/api/admin/transactions/recent?${params.toString()}`,
+        { cache: "no-store" },
+      );
+    },
+    staleTime: 0,
+    refetchOnMount: "always",
     refetchInterval: 60 * 1000,
     retry: 2,
   });

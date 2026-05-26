@@ -18,10 +18,26 @@ type AdminOverview = {
 };
 
 export function useAdminOverview() {
+  return useAdminOverviewByBus("ALL");
+}
+
+export function useAdminOverviewByBus(busId: string | "ALL") {
   return useQuery({
-    queryKey: ["admin", "overview"],
-    queryFn: () => requestApi<AdminOverview>("/api/admin/overview"),
-    staleTime: 30 * 1000, // 30 seconds
+    queryKey: ["admin", "overview", busId],
+    queryFn: () => {
+      const params = new URLSearchParams();
+
+      if (busId !== "ALL") {
+        params.set("busId", busId);
+      }
+
+      const query = params.toString();
+      const url = query ? `/api/admin/overview?${query}` : "/api/admin/overview";
+
+      return requestApi<AdminOverview>(url, { cache: "no-store" });
+    },
+    staleTime: 0,
+    refetchOnMount: "always",
     refetchInterval: 60 * 1000, // Auto-refetch every 60 seconds
     enabled: true, // Ensure query starts immediately
     retry: 2, // Retry on failure

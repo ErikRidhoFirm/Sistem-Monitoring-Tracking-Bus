@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const recentTransactionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).optional().default(5),
+  busId: z.string().trim().min(1).optional(),
 });
 
 export default async function handler(
@@ -38,6 +39,7 @@ export default async function handler(
 
   const parseQuery = recentTransactionsQuerySchema.safeParse({
     limit: req.query.limit,
+    busId: req.query.busId,
   });
 
   if (!parseQuery.success) {
@@ -51,7 +53,7 @@ export default async function handler(
     });
   }
 
-  const { limit } = parseQuery.data;
+  const { limit, busId } = parseQuery.data;
   const today = new Date();
   const startOfToday = new Date(
     today.getFullYear(),
@@ -65,6 +67,7 @@ export default async function handler(
 
   const transactions = await prisma.transaction.findMany({
     where: {
+      ...(busId ? { busId } : {}),
       createdAt: {
         gte: startOfToday,
       },
