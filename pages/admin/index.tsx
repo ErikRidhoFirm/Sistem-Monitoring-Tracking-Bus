@@ -3,20 +3,26 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/admin/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bus, CreditCard, ReceiptText, Sparkles, Users, Wifi } from "lucide-react";
+import { CreditCard, Sparkles, Users, Wifi } from "lucide-react";
 import { useAdminBuses } from "@/lib/hooks/use-admin-buses";
-import { useAdminOverview } from "@/lib/hooks/use-admin-overview";
+import { useAdminOverviewByBus } from "@/lib/hooks/use-admin-overview";
 import { useAdminProfitSummary } from "@/lib/hooks/use-admin-profit-summary";
-import { useAdminTodayTransactions } from "@/lib/hooks/use-admin-today-transactions";
+import { useAdminTodayTransactionsByBus } from "@/lib/hooks/use-admin-today-transactions";
 
 
 
 export default function AdminPage() {
   const [selectedBusId, setSelectedBusId] = useState<string | "ALL">("ALL");
-  const overviewQuery = useAdminOverview();
+  const overviewQuery = useAdminOverviewByBus(selectedBusId);
   const busesQuery = useAdminBuses("");
   const profitQuery = useAdminProfitSummary(selectedBusId);
-  const transactionsQuery = useAdminTodayTransactions(5);
+  const transactionsQuery = useAdminTodayTransactionsByBus(5, selectedBusId);
+
+  const selectedBus = busesQuery.data?.buses.find((b) => b.id === selectedBusId);
+  const selectedBusLabel =
+    selectedBusId === "ALL"
+      ? "semua armada"
+      : `${selectedBus?.busCode ?? selectedBusId} ${selectedBus?.plateNumber ? `(${selectedBus.plateNumber})` : ""}`;
 
   const formatCurrency = (value: number | undefined) =>
     new Intl.NumberFormat("id-ID", {
@@ -27,44 +33,42 @@ export default function AdminPage() {
 
   const metricItems = [
     {
-      label: "Total Alat",
+      label: selectedBusId === "ALL" ? "Total Alat" : "Status Alat",
       value: overviewQuery.data?.devices ?? "—",
-      description: "Perangkat IoT dan sensor yang terdaftar.",
+      description:
+        selectedBusId === "ALL"
+          ? "Perangkat IoT dan sensor yang terdaftar."
+          : `Perangkat IoT dan sensor pada ${selectedBusLabel}.`,
       icon: Sparkles,
       href: "/admin/iot-devices",
     },
     {
-      label: "Total Bus Aktif",
+      label: selectedBusId === "ALL" ? "Total Bus Aktif" : "Status Bus",
       value: overviewQuery.data?.activeBuses ?? "—",
-      description: "Jumlah armada bus yang sedang aktif.",
+      description:
+        selectedBusId === "ALL"
+          ? "Jumlah armada bus yang sedang aktif."
+          : `Status operasional untuk ${selectedBusLabel}.`,
       icon: Wifi,
       href: "/admin/buses",
     },
     {
-      label: "Total Bus Keseluruhan",
-      value: overviewQuery.data?.buses ?? "—",
-      description: "Total armada bus dalam sistem.",
-      icon: Bus,
-      href: "/admin/buses",
-    },
-    {
-      label: "Total Kartu Aktif",
+      label: selectedBusId === "ALL" ? "Total Kartu Aktif" : "Status Kartu Aktif",
       value: overviewQuery.data?.activeCards ?? "—",
-      description: "Jumlah kartu RFID yang saat ini aktif.",
+      description:
+        selectedBusId === "ALL"
+          ? "Jumlah kartu RFID yang saat ini aktif."
+          : `Kartu yang tercatat pada ${selectedBusLabel}.`,
       icon: CreditCard,
       href: "/admin/cards",
     },
     {
-      label: "Total Kartu Keseluruhan",
-      value: overviewQuery.data?.cards ?? "—",
-      description: "Semua kartu RFID yang terdaftar.",
-      icon: ReceiptText,
-      href: "/admin/cards",
-    },
-    {
-      label: "Total User",
+      label: selectedBusId === "ALL" ? "Total User" : "Status User",
       value: overviewQuery.data?.users ?? "—",
-      description: "Jumlah pengguna yang terdaftar dalam sistem.",
+      description:
+        selectedBusId === "ALL"
+          ? "Jumlah pengguna yang terdaftar dalam sistem."
+          : `Pengguna yang tercatat pada ${selectedBusLabel}.`,
       icon: Users,
       href: "/admin/users",
     },
@@ -147,7 +151,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {metricItems.map((metric) => {
             const Icon = metric.icon;
             const cardContent = (
@@ -184,7 +188,7 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle>Profit Bus</CardTitle>
               <CardDescription>
-                Menampilkan profit harian, mingguan, dan bulanan untuk semua armada atau satu bus tertentu.
+                Menampilkan profit harian, mingguan, dan bulanan untuk {selectedBusLabel}.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -227,7 +231,7 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle>5 Transaksi Terakhir Hari Ini</CardTitle>
               <CardDescription>
-                Menampilkan transaksi pengguna dari awal hari hingga sekarang.
+                Menampilkan transaksi pengguna dari awal hari hingga sekarang untuk {selectedBusLabel}.
               </CardDescription>
             </CardHeader>
             <CardContent>

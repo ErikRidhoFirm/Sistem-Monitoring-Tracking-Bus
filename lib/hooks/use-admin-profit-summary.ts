@@ -28,9 +28,11 @@ export function useAdminProfitSummary(busId: string | "ALL") {
       const query = params.toString();
       const url = query ? `/api/admin/profit-summary?${query}` : "/api/admin/profit-summary";
 
-      return requestApi<AdminProfitSummary>(url);
+      return requestApi<AdminProfitSummary>(url, { cache: "no-store" });
     },
-    staleTime: 30 * 1000,
+    // Always treat data as stale so switching bus filter triggers a fresh fetch.
+    staleTime: 0,
+    refetchOnMount: "always",
     refetchInterval: 60 * 1000,
     retry: 2,
   });
