@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { UserLayout } from "@/components/user/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { getSessionFromRequest } from "@/lib/api-session";
 import { prisma } from "@/lib/prisma";
 
@@ -46,12 +47,11 @@ const PenumpangPage: NextPage<PenumpangPageProps> = ({ buses, selectedBusId, pas
   return (
     <UserLayout>
       <div className="space-y-6">
-        <div className="space-y-2 rounded-xl border border-border bg-card p-6">
-          <h1 className="text-3xl font-bold">Penumpang Bus</h1>
-          <p className="text-muted-foreground">
-            Lihat daftar penumpang yang sedang berada dalam bus.
-          </p>
-        </div>
+        <AdminPageHeader
+          eyebrow="Penumpang User"
+          title="Penumpang Bus"
+          description="Pantau daftar penumpang berdasarkan bus yang sedang berjalan, dengan tampilan yang menyesuaikan halaman admin." 
+        />
 
         <Card className="border border-border bg-card">
           <CardHeader>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { UserLayout } from "@/components/user/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { getSessionFromRequest } from "@/lib/api-session";
 import { prisma } from "@/lib/prisma";
 
@@ -22,12 +23,11 @@ const ConnectedCardPage: NextPage<ConnectedCardPageProps> = ({ userName, card })
   return (
     <UserLayout>
       <div className="space-y-6">
-        <div className="space-y-2 rounded-xl border border-border bg-card p-6">
-          <h1 className="text-3xl font-bold">Kartu Terhubung</h1>
-          <p className="text-muted-foreground">
-            Detail kartu RFID yang terhubung dengan akun {userName}.
-          </p>
-        </div>
+        <AdminPageHeader
+          eyebrow="Kartu Terhubung"
+          title="Detail Kartu RFID"
+          description="Lihat informasi kartu RFID yang terhubung dengan akun Anda dalam tampilan yang seragam dengan halaman admin." 
+        />
 
         <Card className="border border-border bg-card">
           <CardHeader>

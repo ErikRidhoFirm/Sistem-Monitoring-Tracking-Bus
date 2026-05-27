@@ -1,9 +1,11 @@
 import { useState } from "react";
+import Link from "next/link";
 import type { GetServerSideProps, NextPage } from "next";
 
 import { UserLayout } from "@/components/user/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { getSessionFromRequest } from "@/lib/api-session";
 import { prisma } from "@/lib/prisma";
 import { TransactionType } from "@/generated/prisma/client";
@@ -14,10 +16,24 @@ type UserCard = {
   status: string;
 };
 
+type LatestTransactionItem = {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  createdAt: string;
+  stationName: string | null;
+  rfidTag: string;
+  bus: {
+    busCode: string;
+    plateNumber: string;
+  };
+};
+
 type UserPageProps = {
   userName: string;
   cards: UserCard[];
   travelSummaries: Record<TravelPeriodKey, TravelSummary>;
+  latestTransactions: LatestTransactionItem[];
 };
 
 type TravelPeriodKey = "today" | "7d" | "30d" | "12m";
@@ -31,7 +47,19 @@ type TravelSummary = {
 
 const travelPeriodOrder: TravelPeriodKey[] = ["today", "7d", "30d", "12m"];
 
-const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries }) => {
+const transactionTypeLabels: Record<TransactionType, string> = {
+  IN: "Tap In",
+  OUT: "Tap Out",
+  PENALTY: "Denda",
+};
+
+const formatDateTime = (dateString: string) =>
+  new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(dateString));
+
+const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, latestTransactions }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<TravelPeriodKey>("today");
   const selectedSummary = travelSummaries[selectedPeriod];
 
@@ -45,12 +73,11 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries })
   return (
     <UserLayout>
       <div className="space-y-6">
-        <div className="space-y-2 rounded-xl border border-border bg-card p-6">
-          <h1 className="text-3xl font-bold">Selamat datang, {userName}!</h1>
-          <p className="text-muted-foreground">
-            Ini adalah halaman dashboard pengguna. Di sini kamu dapat melihat data kartu RFID dan saldo.
-          </p>
-        </div>
+        <AdminPageHeader
+          eyebrow="Dashboard User"
+          title={`Selamat datang, ${userName}!`}
+          description="Lihat ringkasan perjalanan, saldo kartu RFID, dan riwayat transaksi terbaru dalam satu tampilan yang konsisten." 
+        />
 
         <Card className="border border-border bg-card">
           <CardHeader>
@@ -108,6 +135,61 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries })
 
         <Card className="border border-border bg-card">
           <CardHeader>
+            <CardTitle>Riwayat Transaksi</CardTitle>
+            <CardDescription>Lihat 5 transaksi terakhir dari akun Anda dan buka riwayat lengkap saat diperlukan.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {latestTransactions.length === 0 ? (
+              <div className="rounded-xl border border-border bg-background p-6 text-sm text-muted-foreground">
+                Belum ada riwayat transaksi.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
+                  <thead>
+                    <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      <th className="px-4 py-2">Info Tap</th>
+                      <th className="px-4 py-2">Bus & Stasiun</th>
+                      <th className="px-4 py-2">Biaya</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {latestTransactions.map((tx) => (
+                      <tr key={tx.id} className="rounded-2xl border border-border bg-card shadow-xs transition-colors hover:bg-muted/10">
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit rounded-full bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
+                              {transactionTypeLabels[tx.type] ?? tx.type}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{formatDateTime(tx.createdAt)}</span>
+                            <span className="text-xs text-muted-foreground">{tx.rfidTag}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium text-foreground">{tx.bus.busCode} ({tx.bus.plateNumber})</span>
+                            <span className="text-xs text-muted-foreground">{tx.stationName ?? "-"}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-semibold text-foreground">{formatCurrency(tx.amount)}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Link href="/user/history">
+                <Button variant="default">Lihat Semua Riwayat</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border bg-card">
+          <CardHeader>
             <CardTitle>Kartu RFID</CardTitle>
             <CardDescription>Informasi kartu yang terkait dengan akun Anda.</CardDescription>
           </CardHeader>
@@ -154,7 +236,6 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
 
   const now = new Date();
   const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-  const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
   const startOfMonthOffset = (date: Date, monthsBack: number) => {
     const start = new Date(date);
     start.setDate(1);
@@ -204,10 +285,49 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
     },
   });
 
+  const latestTransactionsData = await prisma.transaction.findMany({
+    where: {
+      card: {
+        userId: session.user.id,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 5,
+    include: {
+      bus: {
+        select: {
+          busCode: true,
+          plateNumber: true,
+        },
+      },
+      card: {
+        select: {
+          rfidTag: true,
+        },
+      },
+    },
+  });
+
+  const latestTransactions = latestTransactionsData.map((tx) => ({
+    id: tx.id,
+    type: tx.type,
+    amount: tx.amount,
+    createdAt: tx.createdAt.toISOString(),
+    stationName: tx.stationName,
+    rfidTag: tx.card.rfidTag,
+    bus: {
+      busCode: tx.bus.busCode,
+      plateNumber: tx.bus.plateNumber,
+    },
+  }));
+
   return {
     props: {
       userName,
       cards,
+      latestTransactions,
       travelSummaries: {
         today: {
           label: "Hari Ini",
