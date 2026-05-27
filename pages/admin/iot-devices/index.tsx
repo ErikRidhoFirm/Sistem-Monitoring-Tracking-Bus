@@ -195,6 +195,36 @@ export default function AdminIotDevicesPage() {
     isDeviceOnline(device.lastSeenAt),
   ).length;
 
+  const summaryCards = [
+    {
+      label: "Total Device",
+      value: totalDevices,
+      description: "Seluruh IoT device yang terdaftar di sistem.",
+      icon: Cpu,
+      iconClassName: "bg-sky-100 text-sky-700 ring-1 ring-sky-200",
+    },
+    {
+      label: "Device Aktif",
+      value: activeDevices,
+      description: "Device yang sedang berada dalam status aktif.",
+      icon: CheckCircle2,
+      iconClassName: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
+    },
+    {
+      label: "Terpasang ke Bus",
+      value: assignedDevices,
+      description: "Device yang sudah terhubung ke armada bus.",
+      icon: Radio,
+      iconClassName: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
+    },
+    {
+      label: "Online (5 menit)",
+      value: onlineDevices,
+      description: "Device yang terdeteksi aktif dalam 5 menit terakhir.",
+      icon: Wifi,
+      iconClassName: "bg-violet-100 text-violet-700 ring-1 ring-violet-200",
+    },
+  ];
   const isSaving =
     createDeviceMutation.isPending || updateDeviceMutation.isPending;
 
@@ -317,61 +347,38 @@ export default function AdminIotDevicesPage() {
         />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Device
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-end justify-between">
-              <span className="text-4xl font-semibold text-foreground">
-                {totalDevices}
-              </span>
-              <Cpu className="h-5 w-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Device Aktif
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-end justify-between">
-              <span className="text-4xl font-semibold text-foreground">
-                {activeDevices}
-              </span>
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Terpasang ke Bus
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-end justify-between">
-              <span className="text-4xl font-semibold text-foreground">
-                {assignedDevices}
-              </span>
-              <Radio className="h-5 w-5 text-primary" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Online (5 menit)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-end justify-between">
-              <span className="text-4xl font-semibold text-foreground">
-                {onlineDevices}
-              </span>
-              <Wifi className="h-5 w-5 text-sky-600" />
-            </CardContent>
-          </Card>
+            return (
+              <Card
+                key={card.label}
+                className="overflow-hidden border-border/70 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+              >
+                <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
+                  <div className="space-y-2">
+                    <CardTitle className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                      {card.label}
+                    </CardTitle>
+                    <p className="max-w-[20ch] text-sm leading-6 text-muted-foreground">
+                      {card.description}
+                    </p>
+                  </div>
+                  <div className={`rounded-2xl p-3 ${card.iconClassName}`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div
+                    className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {card.value}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <Card>

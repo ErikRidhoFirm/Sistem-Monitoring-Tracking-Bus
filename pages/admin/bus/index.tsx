@@ -24,7 +24,17 @@ import {
   useDeleteBusMutation,
   useUpdateBusMutation,
 } from "@/lib/hooks/use-admin-buses";
-import { Download, Edit3, Plus, Search, Trash2 } from "lucide-react";
+import {
+  BusFront,
+  Download,
+  Edit3,
+  Gauge,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { AdminPageHeader } from "@/components/admin/page-header";
@@ -96,6 +106,38 @@ export default function AdminBusPage() {
     (sum, busItem) => sum + (busItem.passengerCount ?? 0),
     0,
   );
+  const inactiveCount = busList.length - activeCount;
+
+  const summaryCards = [
+    {
+      label: "Total Armada",
+      value: busList.length,
+      description: "Seluruh armada yang terdaftar di sistem.",
+      icon: BusFront,
+      iconClassName: "bg-sky-100 text-sky-700 ring-1 ring-sky-200",
+    },
+    {
+      label: "Armada Aktif",
+      value: activeCount,
+      description: "Bus yang sedang beroperasi saat ini.",
+      icon: Sparkles,
+      iconClassName: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
+    },
+    {
+      label: "Status Nonaktif",
+      value: inactiveCount,
+      description: "Armada yang belum aktif atau sedang berhenti.",
+      icon: Gauge,
+      iconClassName: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
+    },
+    {
+      label: "Total Penumpang",
+      value: totalPassengers,
+      description: "Akumulasi penumpang dari seluruh armada.",
+      icon: Users,
+      iconClassName: "bg-violet-100 text-violet-700 ring-1 ring-violet-200",
+    },
+  ];
   const isSaving = createBusMutation.isPending || updateBusMutation.isPending;
 
   const openCreateDialog = () => {
@@ -205,38 +247,38 @@ export default function AdminBusPage() {
         />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Armada</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {busList.length}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Armada Aktif</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {activeCount}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Status Nonaktif</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {busList.length - activeCount}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Penumpang</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {totalPassengers}
-            </CardContent>
-          </Card>
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+
+            return (
+              <Card
+                key={card.label}
+                className="overflow-hidden border-border/70 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+              >
+                <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
+                  <div className="space-y-2">
+                    <CardTitle className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                      {card.label}
+                    </CardTitle>
+                    <p className="max-w-[18ch] text-sm leading-6 text-muted-foreground">
+                      {card.description}
+                    </p>
+                  </div>
+                  <div className={`rounded-2xl p-3 ${card.iconClassName}`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div
+                    className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {card.value}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <Card>
