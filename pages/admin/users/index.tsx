@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { BadgeCheck, Shield, Users, UserRound } from "lucide-react";
 
 interface User {
   id: string;
@@ -81,6 +82,37 @@ export default function UserPage() {
   const totalUserBiasa = users.filter((u: User) => u.role === 'USER').length;
   const totalVerified = users.filter((u: User) => u.emailVerified).length;
 
+  const summaryCards = [
+    {
+      label: "Total Pengguna",
+      value: isLoading ? "..." : totalUsers,
+      description: "Seluruh akun pengguna yang terdaftar.",
+      icon: Users,
+      iconClassName: "bg-sky-100 text-sky-700 ring-1 ring-sky-200",
+    },
+    {
+      label: "Admin Aktif",
+      value: isLoading ? "..." : totalAdmin,
+      description: "Akun dengan akses administrasi.",
+      icon: Shield,
+      iconClassName: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
+    },
+    {
+      label: "User Biasa",
+      value: isLoading ? "..." : totalUserBiasa,
+      description: "Akun dengan peran pengguna standar.",
+      icon: UserRound,
+      iconClassName: "bg-violet-100 text-violet-700 ring-1 ring-violet-200",
+    },
+    {
+      label: "Email Terverifikasi",
+      value: isLoading ? "..." : totalVerified,
+      description: "Pengguna yang sudah lolos verifikasi email.",
+      icon: BadgeCheck,
+      iconClassName: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
+    },
+  ];
+
   // Filter Data Tabel
   const filteredUsers = users.filter((user: User) => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -108,23 +140,37 @@ export default function UserPage() {
         />
 
         {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-bold text-gray-900">Total Pengguna</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalUsers}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-bold text-gray-900">Admin Aktif</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalAdmin}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-bold text-gray-900">User Biasa</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalUserBiasa}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-bold text-gray-900">Email Terverifikasi</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-3">{isLoading ? "..." : totalVerified}</p>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+
+            return (
+              <div
+                key={card.label}
+                className="overflow-hidden rounded-3xl border border-border/70 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                      {card.label}
+                    </h3>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      {card.description}
+                    </p>
+                  </div>
+                  <div className={`rounded-2xl p-3 ${card.iconClassName}`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                </div>
+                <p
+                  className="mt-6 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  {card.value}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
         {/* TABLE SECTION */}
