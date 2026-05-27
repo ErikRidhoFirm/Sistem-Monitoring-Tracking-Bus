@@ -5,10 +5,15 @@ import type { GetServerSideProps, NextPage } from "next";
 import { UserLayout } from "@/components/user/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { getSessionFromRequest } from "@/lib/api-session";
 import { prisma } from "@/lib/prisma";
 import { TransactionType } from "@/generated/prisma/client";
+import { Link as LinkIcon, Unlink as UnlinkIcon } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 type UserCard = {
   rfidTag: string;
@@ -61,6 +66,11 @@ const formatDateTime = (dateString: string) =>
 
 const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, latestTransactions }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<TravelPeriodKey>("today");
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [linkRfidTag, setLinkRfidTag] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkedCard, setLinkedCard] = useState<UserCard | null>(cards && cards.length > 0 ? cards[0] : null);
+
   const selectedSummary = travelSummaries[selectedPeriod];
 
   const formatCurrency = (value: number) =>
@@ -69,6 +79,66 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
       currency: "IDR",
       maximumFractionDigits: 0,
     }).format(value);
+
+  const handleLinkCard = async () => {
+    if (!linkRfidTag.trim()) {
+      toast.error("Masukkan RFID Tag");
+      return;
+    }
+
+    setIsLinking(true);
+    try {
+      const response = await fetch("/api/user/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rfidTag: linkRfidTag.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.errors?.[0]?.message || "Gagal menghubungkan kartu");
+        return;
+      }
+
+      setLinkedCard({
+        rfidTag: data.rfidTag,
+        balance: data.balance || 0,
+        status: data.status || "active",
+      });
+      setLinkRfidTag("");
+      setIsLinkDialogOpen(false);
+      toast.success("Kartu berhasil dihubungkan");
+    } catch (error) {
+      toast.error("Terjadi kesalahan");
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleUnlinkCard = async () => {
+    if (!linkedCard) return;
+
+    if (!confirm("Apakah Anda yakin ingin melepas kartu ini dari akun?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/user/cards", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        toast.error("Gagal melepas kartu");
+        return;
+      }
+
+      setLinkedCard(null);
+      toast.success("Kartu berhasil dilepas dari akun");
+    } catch (error) {
+      toast.error("Terjadi kesalahan");
+    }
+  };
 
   return (
     <UserLayout>
@@ -191,12 +261,96 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
         <Card className="border border-border bg-card">
           <CardHeader>
             <CardTitle>Kartu RFID</CardTitle>
-            <CardDescription>Informasi kartu yang terkait dengan akun Anda.</CardDescription>
+            <CardDescription>Hubungkan kartu RFID Anda untuk menggunakan layanan. Maksimal 1 kartu per akun.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <CardsList cards={cards} />
+          <CardContent className="space-y-4">
+            {linkedCard ? (
+              <div>
+                <div className="rounded-xl border border-border bg-background p-6 space-y-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">ID Kartu RFID</p>
+                    <p className="text-lg font-semibold text-foreground mt-1">{linkedCard.rfidTag}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Saldo</p>
+                      <p className="text-lg font-semibold text-foreground mt-1">
+                        Rp {linkedCard.balance.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Status</p>
+                      <p className="text-lg font-semibold text-foreground mt-1 capitalize">{linkedCard.status}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleUnlinkCard}
+                    className="flex items-center gap-2"
+                  >
+                    <UnlinkIcon className="h-4 w-4" />
+                    Lepas Kartu
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center space-y-4">
+                <p className="text-sm text-muted-foreground">Belum ada kartu RFID yang terhubung dengan akun Anda.</p>
+                <Button
+                  type="button"
+                  onClick={() => setIsLinkDialogOpen(true)}
+                  className="flex items-center gap-2 mx-auto"
+                >
+                  <LinkIcon className="h-4 w-4" />
+                  Hubungkan Kartu RFID
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+          <DialogContent className="max-w-md rounded-3xl border border-border bg-card">
+            <DialogHeader>
+              <DialogTitle>Hubungkan Kartu RFID</DialogTitle>
+              <DialogDescription>
+                Masukkan ID RFID Tag kartu yang ingin Anda hubungkan dengan akun.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="rfidInput">RFID Tag</Label>
+                <Input
+                  id="rfidInput"
+                  value={linkRfidTag}
+                  onChange={(e) => setLinkRfidTag(e.target.value)}
+                  placeholder="Contoh: D4:5C:B1:F2"
+                  disabled={isLinking}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsLinkDialogOpen(false)}
+                disabled={isLinking}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={handleLinkCard}
+                disabled={isLinking}
+              >
+                {isLinking ? "Menghubungkan..." : "Hubungkan"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </UserLayout>
   );
