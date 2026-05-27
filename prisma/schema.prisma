@@ -100,6 +100,8 @@ model Bus {
   id             String  @id @default(cuid())
   busCode        String  @unique
   plateNumber    String
+  // Harga/tarif per bus (dalam rupiah)
+  price          Int     @default(2500)
   isActive       Boolean @default(true)
   passengerCount Int     @default(0)
   maxPassengers  Int     @default(50)

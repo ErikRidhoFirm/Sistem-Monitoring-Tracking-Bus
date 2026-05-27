@@ -1,19 +1,59 @@
 import { AdminLayout } from "@/components/admin/layout";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminOverview } from "@/lib/hooks/use-admin-overview";
+import { BadgeCheck, BusFront, CreditCard, MapPinned, ReceiptText, Users } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const overviewQuery = useAdminOverview();
 
+  const metrics = [
+    {
+      label: "Users",
+      value: overviewQuery.data?.users ?? 0,
+      icon: Users,
+      iconClassName: "bg-sky-100 text-sky-700 ring-1 ring-sky-200",
+    },
+    {
+      label: "Buses",
+      value: overviewQuery.data?.buses ?? 0,
+      icon: BusFront,
+      iconClassName: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
+    },
+    {
+      label: "Routes",
+      value: overviewQuery.data?.routes ?? 0,
+      icon: MapPinned,
+      iconClassName: "bg-violet-100 text-violet-700 ring-1 ring-violet-200",
+    },
+    {
+      label: "Stations",
+      value: overviewQuery.data?.stations ?? 0,
+      icon: BadgeCheck,
+      iconClassName: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
+    },
+    {
+      label: "Cards",
+      value: overviewQuery.data?.cards ?? 0,
+      icon: CreditCard,
+      iconClassName: "bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200",
+    },
+    {
+      label: "Transactions",
+      value: overviewQuery.data?.transactions ?? 0,
+      icon: ReceiptText,
+      iconClassName: "bg-orange-100 text-orange-700 ring-1 ring-orange-200",
+    },
+  ];
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">Admin Settings & Overview</h1>
-          <p className="text-muted-foreground">
-            Ringkasan data utama untuk monitoring kesiapan operasional aplikasi.
-          </p>
-        </div>
+        <AdminPageHeader
+          eyebrow="System Overview"
+          title="Admin Settings & Overview"
+          description="Ringkasan data utama untuk monitoring kesiapan operasional aplikasi."
+        />
 
         <Card>
           <CardHeader>
@@ -33,16 +73,16 @@ export default function AdminSettingsPage() {
             ) : null}
 
             {!overviewQuery.isLoading && !overviewQuery.isError && overviewQuery.data ? (
-              <div className="grid gap-3 md:grid-cols-3">
-                <MetricCard label="Users" value={overviewQuery.data.users} />
-                <MetricCard label="Buses" value={overviewQuery.data.buses} />
-                <MetricCard label="Routes" value={overviewQuery.data.routes} />
-                <MetricCard label="Stations" value={overviewQuery.data.stations} />
-                <MetricCard label="Cards" value={overviewQuery.data.cards} />
-                <MetricCard
-                  label="Transactions"
-                  value={overviewQuery.data.transactions}
-                />
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {metrics.map((metric) => (
+                  <MetricCard
+                    key={metric.label}
+                    label={metric.label}
+                    value={metric.value}
+                    icon={metric.icon}
+                    iconClassName={metric.iconClassName}
+                  />
+                ))}
               </div>
             ) : null}
           </CardContent>
@@ -52,11 +92,38 @@ export default function AdminSettingsPage() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  iconClassName,
+}: {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  iconClassName: string;
+}) {
   return (
-    <div className="rounded-md border border-input p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-2xl font-semibold">{value}</p>
+    <div className="rounded-3xl border border-border/70 bg-background p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            {label}
+          </p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Ringkasan metrik sistem untuk kontrol operasional.
+          </p>
+        </div>
+        <div className={`rounded-2xl p-3 ${iconClassName}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+      <p
+        className="mt-6 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        {value}
+      </p>
     </div>
   );
 }

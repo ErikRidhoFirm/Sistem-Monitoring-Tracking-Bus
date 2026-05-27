@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/layout";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -121,14 +122,11 @@ export default function MqttDebugPage() {
   return (
     <AdminLayout>
       <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            MQTT Debug Client
-          </h1>
-          <p className="text-sm text-gray-500">
-            Halaman sederhana untuk melihat data masuk dari HiveMQ.
-          </p>
-        </div>
+          <AdminPageHeader
+            eyebrow="Debug Console"
+            title="MQTT Debug Client"
+            description="Halaman sederhana untuk melihat data masuk dari HiveMQ."
+          />
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
           <div className="grid gap-3 md:grid-cols-2">

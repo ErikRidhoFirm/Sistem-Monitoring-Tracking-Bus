@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { requestApi } from "@/lib/api-client";
 import { TransactionTypeValue } from "@/types/transaction-type";
 
-type TransactionItem = {
+export type TransactionItem = {
   id: string;
   type: TransactionTypeValue;
   amount: number;
@@ -15,10 +15,16 @@ type TransactionItem = {
   stationName: string | null;
   card: {
     rfidTag: string;
+    user?: {
+      id: string;
+      name: string | null;
+      email: string | null;
+    } | null;
   };
   bus: {
     id: string;
     busCode: string;
+    plateNumber: string;
   };
 };
 

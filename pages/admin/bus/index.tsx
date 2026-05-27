@@ -24,9 +24,20 @@ import {
   useDeleteBusMutation,
   useUpdateBusMutation,
 } from "@/lib/hooks/use-admin-buses";
-import { Download, Edit3, Plus, Search, Trash2 } from "lucide-react";
+import {
+  BusFront,
+  Download,
+  Edit3,
+  Gauge,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
+import { AdminPageHeader } from "@/components/admin/page-header";
 
 type BusFormValues = {
   busCode: string;
@@ -34,6 +45,7 @@ type BusFormValues = {
   routeId: string | null;
   isActive: boolean;
   maxPassengers: string;
+  price: string;
 };
 
 const defaultFormValues: BusFormValues = {
@@ -42,6 +54,7 @@ const defaultFormValues: BusFormValues = {
   routeId: null,
   isActive: true,
   maxPassengers: "50",
+  price: "2500",
 };
 
 export default function AdminBusPage() {
@@ -93,6 +106,38 @@ export default function AdminBusPage() {
     (sum, busItem) => sum + (busItem.passengerCount ?? 0),
     0,
   );
+  const inactiveCount = busList.length - activeCount;
+
+  const summaryCards = [
+    {
+      label: "Total Armada",
+      value: busList.length,
+      description: "Seluruh armada yang terdaftar di sistem.",
+      icon: BusFront,
+      iconClassName: "bg-sky-100 text-sky-700 ring-1 ring-sky-200",
+    },
+    {
+      label: "Armada Aktif",
+      value: activeCount,
+      description: "Bus yang sedang beroperasi saat ini.",
+      icon: Sparkles,
+      iconClassName: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
+    },
+    {
+      label: "Status Nonaktif",
+      value: inactiveCount,
+      description: "Armada yang belum aktif atau sedang berhenti.",
+      icon: Gauge,
+      iconClassName: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
+    },
+    {
+      label: "Total Penumpang",
+      value: totalPassengers,
+      description: "Akumulasi penumpang dari seluruh armada.",
+      icon: Users,
+      iconClassName: "bg-violet-100 text-violet-700 ring-1 ring-violet-200",
+    },
+  ];
   const isSaving = createBusMutation.isPending || updateBusMutation.isPending;
 
   const openCreateDialog = () => {
@@ -109,6 +154,7 @@ export default function AdminBusPage() {
       routeId: busItem.route?.id ?? null,
       isActive: busItem.isActive,
       maxPassengers: String(busItem.maxPassengers ?? 50),
+      price: String(busItem.price ?? 2500),
     });
     setIsDialogOpen(true);
   };
@@ -126,6 +172,7 @@ export default function AdminBusPage() {
     }
 
     const parsedMaxPassengers = Number(formValues.maxPassengers);
+    const parsedPrice = Number(formValues.price);
 
     if (!Number.isInteger(parsedMaxPassengers) || parsedMaxPassengers < 1) {
       toast.error("Kapasitas maksimal harus angka bulat minimal 1");
@@ -141,6 +188,7 @@ export default function AdminBusPage() {
             plateNumber: formValues.plateNumber,
             isActive: formValues.isActive,
             maxPassengers: parsedMaxPassengers,
+            price: parsedPrice,
             routeId: formValues.routeId,
           },
         });
@@ -151,6 +199,7 @@ export default function AdminBusPage() {
           plateNumber: formValues.plateNumber,
           isActive: formValues.isActive,
           maxPassengers: parsedMaxPassengers,
+          price: parsedPrice,
           routeId: formValues.routeId,
         });
         toast.success("Bus berhasil ditambahkan");
@@ -177,59 +226,59 @@ export default function AdminBusPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-              Kelola Data Bus
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Tambah, edit, dan pantau status armada bus Anda
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" size="sm">
+        <AdminPageHeader
+          eyebrow="Bus Management"
+          title="Kelola Data Bus"
+          description="Tambah, edit, dan pantau status armada bus Anda."
+          actions={
+            <>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-10 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-[#f4f1e8] shadow-sm backdrop-blur transition-colors hover:bg-white/15"
+            >
               <Download className="mr-2" /> Export CSV
             </Button>
-            <Button size="sm" onClick={openCreateDialog}>
+            <Button size="sm" className="rounded-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95" onClick={openCreateDialog}>
               <Plus className="mr-2" /> Tambah Bus Baru
             </Button>
-          </div>
-        </section>
+            </>
+          }
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Armada</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {busList.length}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Armada Aktif</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {activeCount}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Status Nonaktif</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {busList.length - activeCount}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Penumpang</CardTitle>
-            </CardHeader>
-            <CardContent className="text-4xl font-semibold text-foreground">
-              {totalPassengers}
-            </CardContent>
-          </Card>
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+
+            return (
+              <Card
+                key={card.label}
+                className="overflow-hidden border-border/70 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+              >
+                <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
+                  <div className="space-y-2">
+                    <CardTitle className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                      {card.label}
+                    </CardTitle>
+                    <p className="max-w-[18ch] text-sm leading-6 text-muted-foreground">
+                      {card.description}
+                    </p>
+                  </div>
+                  <div className={`rounded-2xl p-3 ${card.iconClassName}`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div
+                    className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {card.value}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <Card>
@@ -282,6 +331,7 @@ export default function AdminBusPage() {
                   <th className="px-4 py-3">Route</th>
                   <th className="px-4 py-3">Penumpang</th>
                   <th className="px-4 py-3">Kapasitas Maks</th>
+                  <th className="px-4 py-3">Harga</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Aksi</th>
                 </tr>
@@ -309,6 +359,13 @@ export default function AdminBusPage() {
                     </td>
                     <td className="px-4 py-4 align-top text-foreground">
                       {busItem.maxPassengers}
+                    </td>
+                    <td className="px-4 py-4 align-top text-foreground">
+                      {new Intl.NumberFormat("id-ID", {
+                        style: "currency",
+                        currency: "IDR",
+                        maximumFractionDigits: 0,
+                      }).format(busItem.price ?? 0)}
                     </td>
                     <td className="px-4 py-4 align-top">
                       <span
@@ -400,6 +457,18 @@ export default function AdminBusPage() {
             </div>
 
             <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="price">Harga (IDR)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  value={formValues.price}
+                  onChange={(event) =>
+                    setFormValues({ ...formValues, price: event.target.value })
+                  }
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="maxPassengers">Kapasitas Maksimal</Label>
                 <Input

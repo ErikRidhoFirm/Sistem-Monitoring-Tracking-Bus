@@ -1,14 +1,12 @@
-import type { GetServerSideProps, NextPage } from "next";
-import Link from "next/link";
 import { useState } from "react";
+import type { GetServerSideProps, NextPage } from "next";
 
 import { UserLayout } from "@/components/user/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { getSessionFromRequest } from "@/lib/api-session";
 import { prisma } from "@/lib/prisma";
+import { TransactionType } from "@/generated/prisma/client";
 
 type UserCard = {
   rfidTag: string;
@@ -18,87 +16,31 @@ type UserCard = {
 
 type UserPageProps = {
   userName: string;
-  card: UserCard | null;
+  cards: UserCard[];
+  travelSummaries: Record<TravelPeriodKey, TravelSummary>;
 };
 
-const UserPage: NextPage<UserPageProps> = ({ userName, card }) => {
-  const [connectedCard, setConnectedCard] = useState<UserCard | null>(card);
-  const [rfidTag, setRfidTag] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+type TravelPeriodKey = "today" | "7d" | "30d" | "12m";
 
-  const handleLinkCard = async (event: { preventDefault: () => void }) => {
-    event.preventDefault();
-    setErrorMessage(null);
-    setFeedbackMessage(null);
+type TravelSummary = {
+  label: string;
+  description: string;
+  totalAmount: number;
+  tripCount: number;
+};
 
-    if (!rfidTag.trim()) {
-      setErrorMessage("RFID Tag tidak boleh kosong.");
-      return;
-    }
+const travelPeriodOrder: TravelPeriodKey[] = ["today", "7d", "30d", "12m"];
 
-    if (connectedCard) {
-      setErrorMessage("Kamu sudah memiliki satu kartu terhubung. Lepas kartu terlebih dahulu.");
-      return;
-    }
+const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries }) => {
+  const [selectedPeriod, setSelectedPeriod] = useState<TravelPeriodKey>("today");
+  const selectedSummary = travelSummaries[selectedPeriod];
 
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch("/api/user/cards", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ rfidTag: rfidTag.trim() }),
-      });
-
-      const payload = await response.json();
-
-      if (!payload.success) {
-        setErrorMessage(payload.errors?.[0]?.message ?? "Gagal menghubungkan kartu RFID.");
-        return;
-      }
-
-      setConnectedCard(payload.data);
-      setRfidTag("");
-      setFeedbackMessage("Kartu RFID berhasil terhubungkan.");
-    } catch {
-      setErrorMessage("Terjadi kesalahan saat menghubungkan kartu RFID.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUnlinkCard = async () => {
-    if (!connectedCard) {
-      return;
-    }
-
-    setErrorMessage(null);
-    setFeedbackMessage(null);
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch("/api/user/cards", {
-        method: "DELETE",
-      });
-      const payload = await response.json();
-
-      if (!payload.success) {
-        setErrorMessage(payload.errors?.[0]?.message ?? "Gagal melepaskan kartu RFID.");
-        return;
-      }
-
-      setConnectedCard(null);
-      setFeedbackMessage("Kartu RFID berhasil dilepaskan.");
-    } catch {
-      setErrorMessage("Terjadi kesalahan saat melepaskan kartu RFID.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(value);
 
   return (
     <UserLayout>
@@ -106,77 +48,95 @@ const UserPage: NextPage<UserPageProps> = ({ userName, card }) => {
         <div className="space-y-2 rounded-xl border border-border bg-card p-6">
           <h1 className="text-3xl font-bold">Selamat datang, {userName}!</h1>
           <p className="text-muted-foreground">
-            Dashboard user menampilkan kartu RFID yang terhubung dan memperbolehkan kamu mengelolanya.
+            Ini adalah halaman dashboard pengguna. Di sini kamu dapat melihat data kartu RFID dan saldo.
           </p>
         </div>
 
         <Card className="border border-border bg-card">
           <CardHeader>
-            <CardTitle>Kartu RFID Terhubung</CardTitle>
+            <CardTitle>Ringkasan Perjalanan</CardTitle>
             <CardDescription>
-              Hanya satu kartu RFID yang boleh terhubung untuk setiap akun.
+              Total uang yang dipakai untuk perjalanan hari ini, 7 hari, 30 hari, atau 12 bulan terakhir.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {connectedCard ? (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-border bg-background p-4">
-                  <p className="text-sm text-muted-foreground">ID Kartu</p>
-                  <p className="text-xl font-semibold">{connectedCard.rfidTag}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Saldo: Rp {connectedCard.balance.toLocaleString("id-ID")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Status: {connectedCard.status}</p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <Link href="/user/connected-card">
-                    <Button variant="secondary">Lihat detail kartu</Button>
-                  </Link>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {travelPeriodOrder.map((period) => {
+                const summary = travelSummaries[period];
+
+                return (
                   <Button
-                    variant="destructive"
-                    onClick={handleUnlinkCard}
-                    disabled={isSubmitting}
+                    key={period}
+                    type="button"
+                    size="sm"
+                    variant={selectedPeriod === period ? "default" : "secondary"}
+                    onClick={() => setSelectedPeriod(period)}
                   >
-                    Lepas kartu
+                    {summary.label}
                   </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Belum ada kartu RFID terhubung dengan akun kamu.
+                );
+              })}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-border bg-background p-5">
+                <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                  Total Biaya Perjalanan
                 </p>
-                <form onSubmit={handleLinkCard} className="grid gap-4 sm:grid-cols-[1fr_auto]">
-                  <div className="grid gap-2">
-                    <Label htmlFor="rfidTag">RFID Tag</Label>
-                    <Input
-                      id="rfidTag"
-                      value={rfidTag}
-                      onChange={(event) => setRfidTag(event.target.value)}
-                      placeholder="Masukkan RFID Tag"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <Button type="submit" disabled={isSubmitting || !rfidTag.trim()}>
-                    Hubungkan Kartu
-                  </Button>
-                </form>
+                <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                  {formatCurrency(selectedSummary.totalAmount)}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {selectedSummary.description}
+                </p>
               </div>
-            )}
 
-            {feedbackMessage ? (
-              <p className="text-sm text-muted-foreground">{feedbackMessage}</p>
-            ) : null}
+              <div className="rounded-xl border border-border bg-background p-5">
+                <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                  Jumlah Perjalanan
+                </p>
+                <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                  {selectedSummary.tripCount}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Berdasarkan transaksi {TransactionType.IN} yang tercatat.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            {errorMessage ? (
-              <p className="text-sm text-destructive">{errorMessage}</p>
-            ) : null}
+        <Card className="border border-border bg-card">
+          <CardHeader>
+            <CardTitle>Kartu RFID</CardTitle>
+            <CardDescription>Informasi kartu yang terkait dengan akun Anda.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CardsList cards={cards} />
           </CardContent>
         </Card>
       </div>
     </UserLayout>
   );
 };
+
+function CardsList({ cards }: { cards: UserCard[] }) {
+  if (!cards || cards.length === 0) {
+    return <div className="text-sm text-muted-foreground">Belum ada kartu RFID terdaftar.</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {cards.map((card) => (
+        <div key={card.rfidTag} className="rounded-xl border border-border bg-background p-4">
+          <p className="text-sm font-semibold">ID Kartu: {card.rfidTag}</p>
+          <p className="text-sm text-muted-foreground">Saldo: Rp {card.balance.toLocaleString("id-ID")}</p>
+          <p className="text-sm text-muted-foreground">Status: {card.status}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export const getServerSideProps: GetServerSideProps<UserPageProps> = async (context) => {
   const session = await getSessionFromRequest(context.req);
@@ -192,7 +152,50 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
 
   const userName = session.user.name || session.user.email || "Pengguna";
 
-  const card = await prisma.card.findFirst({
+  const now = new Date();
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+  const startOfMonthOffset = (date: Date, monthsBack: number) => {
+    const start = new Date(date);
+    start.setDate(1);
+    start.setMonth(start.getMonth() - monthsBack);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  };
+
+  const sumUserTravel = async (from: Date) => {
+    const aggregate = await prisma.transaction.aggregate({
+      where: {
+        type: TransactionType.IN,
+        createdAt: {
+          gte: from,
+        },
+        card: {
+          userId: session.user.id,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    return {
+      totalAmount: aggregate._sum.amount ?? 0,
+      tripCount: aggregate._count._all,
+    };
+  };
+
+  const [todayTravel, last7Days, last30Days, last12Months] = await Promise.all([
+    sumUserTravel(startOfDay(now)),
+    sumUserTravel(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)),
+    sumUserTravel(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)),
+    sumUserTravel(startOfMonthOffset(now, 11)),
+  ]);
+
+  const cards = await prisma.card.findMany({
     where: { userId: session.user.id },
     select: {
       rfidTag: true,
@@ -204,7 +207,33 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
   return {
     props: {
       userName,
-      card: card || null,
+      cards,
+      travelSummaries: {
+        today: {
+          label: "Hari Ini",
+          description: "Akumulasi biaya perjalanan sejak awal hari ini.",
+          totalAmount: todayTravel.totalAmount,
+          tripCount: todayTravel.tripCount,
+        },
+        "7d": {
+          label: "7 Hari Terakhir",
+          description: "Akumulasi biaya perjalanan selama 7 hari terakhir.",
+          totalAmount: last7Days.totalAmount,
+          tripCount: last7Days.tripCount,
+        },
+        "30d": {
+          label: "30 Hari Terakhir",
+          description: "Akumulasi biaya perjalanan selama 30 hari terakhir.",
+          totalAmount: last30Days.totalAmount,
+          tripCount: last30Days.tripCount,
+        },
+        "12m": {
+          label: "12 Bulan Terakhir",
+          description: "Akumulasi biaya perjalanan selama 12 bulan terakhir.",
+          totalAmount: last12Months.totalAmount,
+          tripCount: last12Months.tripCount,
+        },
+      },
     },
   };
 };

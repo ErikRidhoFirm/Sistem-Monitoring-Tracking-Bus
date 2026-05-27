@@ -11,6 +11,7 @@ export type BusItem = {
   id: string;
   busCode: string;
   plateNumber: string;
+  price: number;
   isActive: boolean;
   passengerCount: number;
   maxPassengers: number;
@@ -27,6 +28,7 @@ type BusUpsertPayload = {
   busCode: string;
   plateNumber: string;
   isActive: boolean;
+  price?: number;
   maxPassengers: number;
   routeId: string | null;
 };
