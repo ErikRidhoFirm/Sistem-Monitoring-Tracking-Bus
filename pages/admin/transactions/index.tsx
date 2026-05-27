@@ -21,6 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { AdminPageHeader } from "@/components/admin/page-header";
 
 export default function AdminTransactionsPage() {
   const [search, setSearch] = useState("");
@@ -120,12 +121,11 @@ export default function AdminTransactionsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Riwayat Transaksi</h1>
-          <p className="text-sm text-muted-foreground">
-            Pantau dan kelola seluruh transaksi tapping kartu RFID pengguna pada armada bus.
-          </p>
-        </div>
+        <AdminPageHeader
+          eyebrow="Transaction Log"
+          title="Riwayat Transaksi"
+          description="Pantau dan kelola seluruh transaksi tapping kartu RFID pengguna pada armada bus."
+        />
 
         <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           {/* List Section */}
@@ -388,7 +388,7 @@ export default function AdminTransactionsPage() {
 
               <Button
                 onClick={handleCreateTransaction}
-                className="w-full"
+                className="w-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95"
                 disabled={createMutation.isPending}
               >
                 <Plus className="mr-2 h-4 w-4" /> Catat Transaksi

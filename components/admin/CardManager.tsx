@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAdminCards, useCreateCardMutation, useDeleteCardMutation } from "@/lib/hooks/use-admin-cards";
 import { Search, Trash2, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { AdminPageHeader } from "@/components/admin/page-header";
 
 export default function CardManager() {
   const [search, setSearch] = useState("");
@@ -74,14 +75,13 @@ export default function CardManager() {
 
   return (
     <div className="space-y-6">
-      <section className="space-y-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Kelola Kartu RFID</h1>
-          <p className="text-sm text-muted-foreground">
-            Tambahkan, cari, dan pantau kartu RFID yang terdaftar dalam sistem.
-          </p>
-        </div>
+      <AdminPageHeader
+        eyebrow="RFID Center"
+        title="Kelola Kartu RFID"
+        description="Tambahkan, cari, dan pantau kartu RFID yang terdaftar dalam sistem."
+      />
 
+      <section className="space-y-3">
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <Card>
             <CardHeader>
@@ -232,7 +232,11 @@ export default function CardManager() {
                 </select>
               </div>
 
-              <Button onClick={handleCreateCard} disabled={createCardMutation.isPending}>
+              <Button
+                onClick={handleCreateCard}
+                className="rounded-md bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95"
+                disabled={createCardMutation.isPending}
+              >
                 <Plus className="mr-2" /> Tambah Kartu
               </Button>
             </CardContent>

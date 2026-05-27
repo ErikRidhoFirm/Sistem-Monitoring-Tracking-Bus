@@ -27,6 +27,7 @@ import {
 import { Download, Edit3, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
+import { AdminPageHeader } from "@/components/admin/page-header";
 
 type BusFormValues = {
   busCode: string;
@@ -183,25 +184,25 @@ export default function AdminBusPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-              Kelola Data Bus
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Tambah, edit, dan pantau status armada bus Anda
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" size="sm">
+        <AdminPageHeader
+          eyebrow="Bus Management"
+          title="Kelola Data Bus"
+          description="Tambah, edit, dan pantau status armada bus Anda."
+          actions={
+            <>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-10 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-[#f4f1e8] shadow-sm backdrop-blur transition-colors hover:bg-white/15"
+            >
               <Download className="mr-2" /> Export CSV
             </Button>
-            <Button size="sm" onClick={openCreateDialog}>
+            <Button size="sm" className="rounded-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95" onClick={openCreateDialog}>
               <Plus className="mr-2" /> Tambah Bus Baru
             </Button>
-          </div>
-        </section>
+            </>
+          }
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Card>

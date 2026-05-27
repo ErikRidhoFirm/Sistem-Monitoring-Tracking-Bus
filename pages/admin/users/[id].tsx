@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/layout";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import UserForm from "@/components/user/UserForm";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/router";
@@ -45,10 +46,11 @@ export default function EditUserPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Data Pengguna</h1>
-          <p className="text-gray-500 text-sm mt-1">Ubah data pengguna sistem Anda</p>
-        </div>
+          <AdminPageHeader
+            eyebrow="User Editor"
+            title="Edit Data Pengguna"
+            description="Ubah data pengguna sistem Anda."
+          />
 
         {isLoading ? (
           <div className="p-12 text-center"><p className="text-gray-500 animate-pulse font-medium">Memuat data pengguna...</p></div>
