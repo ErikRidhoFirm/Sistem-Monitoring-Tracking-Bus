@@ -20,7 +20,9 @@ export default function RfidCardCreatePage() {
             </p>
             <div className="mt-4">
               <Link href="/admin/cards">
-                <Button>Kelola Kartu RFID</Button>
+                <Button className="rounded-md bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95">
+                  Kelola Kartu RFID
+                </Button>
               </Link>
             </div>
           </CardContent>

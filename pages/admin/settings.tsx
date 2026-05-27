@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/layout";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminOverview } from "@/lib/hooks/use-admin-overview";
 
@@ -8,12 +9,11 @@ export default function AdminSettingsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">Admin Settings & Overview</h1>
-          <p className="text-muted-foreground">
-            Ringkasan data utama untuk monitoring kesiapan operasional aplikasi.
-          </p>
-        </div>
+        <AdminPageHeader
+          eyebrow="System Overview"
+          title="Admin Settings & Overview"
+          description="Ringkasan data utama untuk monitoring kesiapan operasional aplikasi."
+        />
 
         <Card>
           <CardHeader>

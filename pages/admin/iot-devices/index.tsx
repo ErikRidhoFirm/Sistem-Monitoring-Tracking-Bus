@@ -45,6 +45,7 @@ import {
   Trash2,
   Wifi,
 } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/page-header";
 
 const deviceFormSchema = z.object({
   serialNumber: z.string().trim().min(1, "Serial number wajib diisi"),
@@ -304,21 +305,16 @@ export default function AdminIotDevicesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-              Manage IoT Devices
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Kelola device tracker, assignment ke bus, dan status operasional
-              secara real-time.
-            </p>
-          </div>
-
-          <Button size="sm" onClick={openCreateDialog}>
-            <Plus className="mr-2" /> Tambah Device
-          </Button>
-        </section>
+        <AdminPageHeader
+          eyebrow="IoT Monitoring"
+          title="Manage IoT Devices"
+          description="Kelola device tracker, assignment ke bus, dan status operasional secara real-time."
+          actions={
+            <Button size="sm" className="rounded-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95" onClick={openCreateDialog}>
+              <Plus className="mr-2" /> Tambah Device
+            </Button>
+          }
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Card>

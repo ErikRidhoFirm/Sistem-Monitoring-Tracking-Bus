@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { z } from "zod";
 
 import { AdminLayout } from "@/components/admin/layout";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -137,12 +138,11 @@ export default function AdminRoutesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">Manajemen Rute</h1>
-          <p className="text-muted-foreground">
-            Kelola trayek, path GeoJSON, dan urutan halte pada setiap rute.
-          </p>
-        </div>
+          <AdminPageHeader
+            eyebrow="Route Studio"
+            title="Manajemen Rute"
+            description="Kelola trayek, path GeoJSON, dan urutan halte pada setiap rute."
+          />
 
         <Card>
           <CardHeader>
@@ -214,6 +214,7 @@ export default function AdminRoutesPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="submit"
+                  className="rounded-md bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95"
                   disabled={
                     isSubmitting ||
                     createRouteMutation.isPending ||

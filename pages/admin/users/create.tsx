@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/layout";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import UserForm from "@/components/user/UserForm";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/router";
@@ -32,10 +33,11 @@ export default function CreateUserPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tambah Pengguna Baru</h1>
-          <p className="text-gray-500 text-sm mt-1">Isi formulir di bawah ini untuk menambahkan pengguna ke dalam sistem</p>
-        </div>
+          <AdminPageHeader
+            eyebrow="User Creator"
+            title="Tambah Pengguna Baru"
+            description="Isi formulir di bawah ini untuk menambahkan pengguna ke dalam sistem."
+          />
 
         <UserForm 
           onSubmit={(data) => createMutation.mutate(data)} 

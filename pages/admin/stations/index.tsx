@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { z } from "zod";
 
 import { AdminLayout } from "@/components/admin/layout";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -109,12 +110,11 @@ export default function AdminStationsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">Manajemen Halte</h1>
-          <p className="text-muted-foreground">
-            Atur data halte untuk geofencing tap in dan tap out.
-          </p>
-        </div>
+          <AdminPageHeader
+            eyebrow="Station Studio"
+            title="Manajemen Halte"
+            description="Atur data halte untuk geofencing tap in dan tap out."
+          />
 
         <Card>
           <CardHeader>
@@ -159,6 +159,7 @@ export default function AdminStationsPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="submit"
+                  className="rounded-md bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95"
                   disabled={
                     isSubmitting ||
                     createStationMutation.isPending ||

@@ -8,6 +8,7 @@ import { useAdminBuses } from "@/lib/hooks/use-admin-buses";
 import { useAdminOverviewByBus } from "@/lib/hooks/use-admin-overview";
 import { useAdminProfitSummary } from "@/lib/hooks/use-admin-profit-summary";
 import { useAdminTodayTransactionsByBus } from "@/lib/hooks/use-admin-today-transactions";
+import { AdminPageHeader } from "@/components/admin/page-header";
 
 
 
@@ -41,6 +42,7 @@ export default function AdminPage() {
           : `Perangkat IoT dan sensor pada ${selectedBusLabel}.`,
       icon: Sparkles,
       href: "/admin/iot-devices",
+      iconClassName: "bg-violet-100 text-violet-700 ring-1 ring-violet-200",
     },
     {
       label: selectedBusId === "ALL" ? "Total Bus Aktif" : "Status Bus",
@@ -51,6 +53,7 @@ export default function AdminPage() {
           : `Status operasional untuk ${selectedBusLabel}.`,
       icon: Wifi,
       href: "/admin/buses",
+      iconClassName: "bg-sky-100 text-sky-700 ring-1 ring-sky-200",
     },
     {
       label: selectedBusId === "ALL" ? "Total Kartu Aktif" : "Status Kartu Aktif",
@@ -61,6 +64,7 @@ export default function AdminPage() {
           : `Kartu yang tercatat pada ${selectedBusLabel}.`,
       icon: CreditCard,
       href: "/admin/cards",
+      iconClassName: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
     },
     {
       label: selectedBusId === "ALL" ? "Total User" : "Status User",
@@ -71,6 +75,7 @@ export default function AdminPage() {
           : `Pengguna yang tercatat pada ${selectedBusLabel}.`,
       icon: Users,
       href: "/admin/users",
+      iconClassName: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
     },
   ];
 
@@ -100,23 +105,15 @@ export default function AdminPage() {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        <section className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
-              BusControl Admin
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Dashboard Operasional
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-              Ringkasan data dan 5 transaksi terakhir hari ini.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+        <AdminPageHeader
+          eyebrow="BusControl Admin"
+          title="Dashboard Operasional"
+          description="Ringkasan data dan 5 transaksi terakhir hari ini."
+          actions={
+            <>
             <select
               aria-label="Filter bus"
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-primary"
+              className="h-10 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-[#f4f1e8] shadow-sm outline-none backdrop-blur transition-colors focus:border-white/30"
               value={selectedBusId}
               onChange={(event) => setSelectedBusId(event.target.value as string | "ALL")}
             >
@@ -130,6 +127,7 @@ export default function AdminPage() {
             <Button
               size="sm"
               variant="secondary"
+              className="rounded-full border border-white/15 bg-white/10 text-[#f4f1e8] shadow-sm hover:bg-white/15"
               onClick={() => {
                 overviewQuery.refetch();
                 busesQuery.refetch();
@@ -146,10 +144,13 @@ export default function AdminPage() {
               Refresh data
             </Button>
             <Link href="/admin/iot-devices">
-              <Button size="sm">Add new sensor</Button>
+              <Button size="sm" className="rounded-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>Tambah Sensor Baru
+              </Button>
             </Link>
-          </div>
-        </section>
+            </>
+          }
+        />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {metricItems.map((metric) => {
@@ -165,7 +166,7 @@ export default function AdminPage() {
                       {metric.value}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-slate-100 p-3 text-slate-900">
+                  <div className={`rounded-2xl p-3 ${metric.iconClassName ?? "bg-slate-100 text-slate-900"}`}>
                     <Icon className="h-6 w-6" />
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import { Manrope, Sora } from "next/font/google";
-import { ReactNode, CSSProperties, useState } from "react";
+import { ReactNode, CSSProperties, useEffect, useState } from "react";
 
 import { AdminNavbar } from "@/components/admin/navbar";
 import { AdminSidebar } from "@/components/admin/sidebar";
@@ -14,12 +14,32 @@ const manrope = Manrope({
   variable: "--font-body",
 });
 
+const SIDEBAR_WIDTH_STORAGE_KEY = "admin-sidebar-width";
+
 type AdminLayoutProps = {
   children: ReactNode;
 };
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window === "undefined") {
+      return 256;
+    }
+
+    const storedWidth = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
+
+    if (!storedWidth) {
+      return 256;
+    }
+
+    const parsedWidth = Number(storedWidth);
+
+    return Number.isFinite(parsedWidth) && parsedWidth > 0 ? parsedWidth : 256;
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
+  }, [sidebarWidth]);
 
   return (
     <div

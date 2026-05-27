@@ -76,12 +76,12 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,#334a61_0%,#253545_100%)] text-sidebar-foreground shadow-[12px_0_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-in-out",
+        "fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(135deg,#24384d_0%,#345877_48%,#4b77ad_100%)] text-sidebar-foreground shadow-[12px_0_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-in-out",
         className,
       )}
       style={{ width: `${width}px` }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_18%,rgba(0,0,0,0.1)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_18%,rgba(0,0,0,0.08)_100%)]" />
       {/* resize handle removed per request */}
       <div className="relative z-10 mb-6 px-4 pt-6">
         <div className="flex items-center justify-between gap-3">
@@ -135,11 +135,6 @@ export function AdminSidebar({
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => {
-                if (isCollapsed) {
-                  onWidthChange?.(96);
-                }
-              }}
               className={cn(
                 "flex items-center rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
                 active
