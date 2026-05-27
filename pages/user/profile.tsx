@@ -2,7 +2,11 @@ import type { GetServerSideProps, NextPage } from "next";
 import { useState } from "react";
 
 import { UserLayout } from "@/components/user/layout";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { getSessionFromRequest } from "@/lib/api-session";
 
 type ProfilePageProps = {
@@ -36,10 +40,11 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
   return (
     <UserLayout>
       <div className="space-y-6">
-        <div className="space-y-2 rounded-xl border border-border bg-card p-6">
-          <h1 className="text-3xl font-bold">Profil Pengguna</h1>
-          <p className="text-muted-foreground">Kelola informasi profil Anda di sini.</p>
-        </div>
+        <AdminPageHeader
+          eyebrow="Profil User"
+          title="Profil Pengguna"
+          description="Kelola informasi akun Anda dengan tampilan yang konsisten dan profesional." 
+        />
 
         <Card className="border border-border bg-card">
           <CardHeader>
@@ -56,9 +61,9 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
                 <p className="text-sm font-semibold">Email</p>
                 <p className="text-sm text-muted-foreground">{userEmail}</p>
               </div>
-              <button onClick={handleEditToggle} className="mt-4 w-full rounded-md bg-primary py-2 px-4 text-sm font-medium text-white hover:bg-primary-dark">
+              <Button type="button" onClick={handleEditToggle} className="mt-4 w-full">
                 Edit Profil
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -71,15 +76,18 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
             </CardHeader>
             <CardContent>
               <form className="space-y-4">
-                <div>
-                  <label htmlFor="editName" className="block text-sm font-medium text-muted-foreground">
-                    Nama Baru
-                  </label>
-                  <input type="text" id="editName" value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1 block w-full rounded-md border border-border bg-background p-2 text-sm" />
+                <div className="space-y-2">
+                  <Label htmlFor="editName">Nama Baru</Label>
+                  <Input
+                    id="editName"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full"
+                  />
                 </div>
-                <button type="button" onClick={handleSave} className="mt-4 w-full rounded-md bg-primary py-2 px-4 text-sm font-medium text-white hover:bg-primary-dark">
+                <Button type="button" onClick={handleSave} className="mt-4 w-full">
                   Simpan Perubahan
-                </button>
+                </Button>
               </form>
             </CardContent>
           </Card>

@@ -2,6 +2,7 @@ import type { GetServerSideProps, NextPage } from "next";
 
 import { UserLayout } from "@/components/user/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/page-header";
 import { getSessionFromRequest } from "@/lib/api-session";
 
 type SettingsPageProps = {
@@ -12,12 +13,11 @@ const SettingsPage: NextPage<SettingsPageProps> = ({ userName }) => {
   return (
     <UserLayout>
       <div className="space-y-6">
-        <div className="space-y-2 rounded-xl border border-border bg-card p-6">
-          <h1 className="text-3xl font-bold">Pengaturan</h1>
-          <p className="text-muted-foreground">
-            Kelola preferensi dan pengaturan aplikasi Anda.
-          </p>
-        </div>
+        <AdminPageHeader
+          eyebrow="Pengaturan User"
+          title="Pengaturan"
+          description="Sesuaikan preferensi aplikasi dan privasi akun Anda dengan tampilan konsisten seperti halaman admin."
+        />
 
         <Card className="border border-border bg-card">
           <CardHeader>

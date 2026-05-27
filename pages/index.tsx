@@ -1,8 +1,10 @@
 import { Manrope, Sora } from "next/font/google";
 import Link from "next/link";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
 const sora = Sora({
