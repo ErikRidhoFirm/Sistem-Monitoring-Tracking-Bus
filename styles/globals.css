@@ -143,7 +143,7 @@ body {
 }
 
 @layer components {
-  main[data-admin-shell] [data-slot="card"] {
+  main[data-admin-shell] [data-slot="card"]:not(.static-card) {
     transition:
       background-color 200ms ease,
       border-color 200ms ease,
@@ -151,7 +151,7 @@ body {
       transform 200ms ease;
   }
 
-  main[data-admin-shell] [data-slot="card"]:hover {
+  main[data-admin-shell] [data-slot="card"]:not(.static-card):hover {
     background: transparent !important;
     background-color: transparent !important;
     border-color: rgba(36, 91, 176, 0.22) !important;
@@ -671,3 +671,48 @@ body {
   box-shadow: 0 10px 22px rgba(36, 91, 176, 0.06);
   backdrop-filter: blur(8px);
 }
+
+/* Specific styling for Static Profit Charts & Tooltips (Buswy Admin) */
+.static-card .recharts-cartesian-axis-tick text {
+  fill: #ffffff !important;
+  fill-opacity: 1 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+}
+
+.static-card .recharts-cartesian-grid-horizontal line {
+  stroke: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Tooltip container contrast overrides */
+.static-card [data-slot="chart"] .bg-background {
+  background-color: #0b1b36 !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Force all text nodes in tooltip to be highly readable white */
+.static-card [data-slot="chart"] .bg-background * {
+  color: #ffffff !important;
+}
+
+/* Tooltip time/day labels */
+.static-card [data-slot="chart"] .bg-background .font-medium {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Tooltip value highlights */
+.static-card [data-slot="chart"] .bg-background .font-mono {
+  color: #ff8a3d !important;
+  font-weight: 700 !important;
+}
+
+/* Tooltip description/muted labels */
+.static-card [data-slot="chart"] .bg-background .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
