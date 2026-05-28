@@ -72,113 +72,159 @@ export default async function handler(
     }
 
     const { search, type } = parseQuery.data;
+    
+    // Pagination & Custom Filters from query string
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    // Filters
+    const userLinkFilter = req.query.userLinkFilter as string || "ALL";
+    const startDate = req.query.startDate as string | undefined;
+    const endDate = req.query.endDate as string | undefined;
+
+    // Filters for Card search and user mapping
     const whereClause: any = {
       AND: [],
     };
 
+    // Filter by card user link status
+    if (userLinkFilter === "LINKED") {
+      whereClause.AND.push({ userId: { not: null } });
+    } else if (userLinkFilter === "UNLINKED") {
+      whereClause.AND.push({ userId: null });
+    }
+
+    // Filter transactions
+    const txWhere: any = {
+      AND: [],
+    };
+
     if (type && type !== "ALL") {
-      whereClause.AND.push({ type: type as TransactionType });
+      txWhere.AND.push({ type: type as TransactionType });
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      txWhere.AND.push({ createdAt: { gte: start } });
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      txWhere.AND.push({ createdAt: { lte: end } });
+    }
+
+    // Link the card search with transaction filters
+    if (txWhere.AND.length > 0) {
+      whereClause.AND.push({
+        transactions: {
+          some: {
+            AND: txWhere.AND
+          }
+        }
+      });
+    } else {
+      // Must have at least one transaction to be considered in the transaction logs
+      whereClause.AND.push({
+        transactions: {
+          some: {}
+        }
+      });
     }
 
     if (search) {
       whereClause.AND.push({
         OR: [
           { rfidTag: { contains: search, mode: "insensitive" } },
-          { stationName: { contains: search, mode: "insensitive" } },
           {
-            card: {
-              user: {
-                name: { contains: search, mode: "insensitive" },
-              },
-            },
+            user: {
+              name: { contains: search, mode: "insensitive" }
+            }
           },
           {
-            card: {
-              user: {
-                email: { contains: search, mode: "insensitive" },
-              },
-            },
+            user: {
+              email: { contains: search, mode: "insensitive" }
+            }
           },
           {
-            bus: {
-              busCode: { contains: search, mode: "insensitive" },
-            },
-          },
-          {
-            bus: {
-              plateNumber: { contains: search, mode: "insensitive" },
-            },
-          },
-        ],
+            transactions: {
+              some: {
+                OR: [
+                  { stationName: { contains: search, mode: "insensitive" } },
+                  {
+                    bus: {
+                      busCode: { contains: search, mode: "insensitive" }
+                    }
+                  },
+                  {
+                    bus: {
+                      plateNumber: { contains: search, mode: "insensitive" }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
       });
     }
 
+    const finalWhere = whereClause.AND.length > 0 ? whereClause : undefined;
+
     try {
-      const [transactions, cards, buses] = await prisma.$transaction([
-        prisma.transaction.findMany({
-          where: whereClause.AND.length > 0 ? whereClause : undefined,
+      const [cards, total] = await prisma.$transaction([
+        prisma.card.findMany({
+          where: finalWhere,
           include: {
-            card: {
-              select: {
-                rfidTag: true,
-                user: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                  },
-                },
-              },
-            },
-            bus: {
+            user: {
               select: {
                 id: true,
-                busCode: true,
-                plateNumber: true,
-              },
+                name: true,
+                email: true
+              }
             },
+            transactions: {
+              where: txWhere.AND.length > 0 ? { AND: txWhere.AND } : undefined,
+              orderBy: {
+                createdAt: "desc"
+              },
+              include: {
+                bus: {
+                  select: {
+                    id: true,
+                    busCode: true,
+                    plateNumber: true
+                  }
+                }
+              }
+            }
           },
           orderBy: {
-            createdAt: "desc",
+            rfidTag: "asc"
           },
+          skip,
+          take: limit
         }),
-        prisma.card.findMany({
-          select: {
-            rfidTag: true,
-          },
-          orderBy: {
-            rfidTag: "asc",
-          },
-        }),
-        prisma.bus.findMany({
-          select: {
-            id: true,
-            busCode: true,
-            plateNumber: true,
-          },
-          orderBy: {
-            busCode: "asc",
-          },
-        }),
+        prisma.card.count({
+          where: finalWhere
+        })
       ]);
 
-      const types = [
-        TransactionTypeValue.IN,
-        TransactionTypeValue.OUT,
-        TransactionTypeValue.PENALTY,
-      ];
+      const users = cards.map((card) => {
+        const txList = card.transactions;
+        const latestTx = txList[0] || null;
+        return {
+          rfidTag: card.rfidTag,
+          userName: card.user?.name ?? "Tanpa Nama",
+          userEmail: card.user?.email ?? "Tidak ada email",
+          latestTx,
+          txList
+        };
+      });
 
       return ApiResponses.success(res, {
-        transactions,
-        cards,
-        buses,
-        types,
-      }, {
-        meta: {
-          total: transactions.length,
-        },
+        users,
+        total
       });
     } catch (error) {
       return ApiResponses.error(res, {
@@ -186,7 +232,7 @@ export default async function handler(
         errors: [
           {
             key: "INTERNAL_SERVER_ERROR",
-            message: "Terjadi kesalahan saat memuat data transaksi",
+            message: "Terjadi kesalahan saat memuat data transaksi secara server-side",
           },
         ],
       });

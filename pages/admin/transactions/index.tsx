@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { AdminLayout } from "@/components/admin/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,13 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   useAdminTransactions,
-  useCreateTransactionMutation,
-  useDeleteTransactionMutation,
   TransactionItem,
 } from "@/lib/hooks/use-admin-transactions";
 import { TransactionTypeValue } from "@/types/transaction-type";
-import { Search, Trash2, Plus, Calendar, MapPin, Bus, CreditCard, Eye, ExternalLink } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { Search, Calendar, MapPin, Bus, CreditCard, Eye, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,100 +21,75 @@ import {
 } from "@/components/ui/dialog";
 import { AdminPageHeader } from "@/components/admin/page-header";
 
+type UserGroup = {
+  rfidTag: string;
+  userName: string;
+  userEmail: string;
+  latestTx: TransactionItem;
+  txList: TransactionItem[];
+};
+
 export default function AdminTransactionsPage() {
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TransactionTypeValue | "ALL">("ALL");
+  const [userLinkFilter, setUserLinkFilter] = useState<"ALL" | "LINKED" | "UNLINKED">("ALL");
 
-  // Form states
-  const [txType, setTxType] = useState<TransactionTypeValue>(TransactionTypeValue.IN);
-  const [amount, setAmount] = useState("2500");
-  const [rfidTag, setRfidTag] = useState("");
-  const [busId, setBusId] = useState("");
-  const [stationName, setStationName] = useState("");
-  const [latTap, setLatTap] = useState("");
-  const [lngTap, setLngTap] = useState("");
+  // Date filters
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
 
   // Detail modal state
-  const [selectedTx, setSelectedTx] = useState<TransactionItem | null>(null);
+  const [selectedUserGroup, setSelectedUserGroup] = useState<UserGroup | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const { data, isLoading, error } = useAdminTransactions(search, typeFilter);
-  const createMutation = useCreateTransactionMutation();
-  const deleteMutation = useDeleteTransactionMutation();
+  // Pagination states (URL Query Param-Based)
+  const router = useRouter();
+  const queryPage = router.query.page;
+  const currentPage = router.isReady && typeof queryPage === "string" ? parseInt(queryPage, 10) || 1 : 1;
+  const itemsPerPage = 10;
 
-  const handleCreateTransaction = () => {
-    if (!rfidTag) {
-      toast.error("RFID Tag wajib dipilih");
-      return;
-    }
-    if (!busId) {
-      toast.error("Bus wajib dipilih");
-      return;
-    }
-
-    const parsedAmount = Number(amount);
-    if (Number.isNaN(parsedAmount) || parsedAmount < 0) {
-      toast.error("Jumlah harus berupa angka 0 atau lebih");
-      return;
-    }
-
-    const parsedLat = latTap ? Number(latTap) : undefined;
-    const parsedLng = lngTap ? Number(lngTap) : undefined;
-
-    if (latTap && Number.isNaN(parsedLat)) {
-      toast.error("Latitude harus berupa angka");
-      return;
-    }
-    if (lngTap && Number.isNaN(parsedLng)) {
-      toast.error("Longitude harus berupa angka");
-      return;
-    }
-
-    createMutation.mutate(
+  const setCurrentPage = (value: number | ((prev: number) => number)) => {
+    const nextPage = typeof value === "function" ? value(currentPage) : value;
+    router.push(
       {
-        type: txType,
-        amount: parsedAmount,
-        rfidTag,
-        busId,
-        stationName: stationName.trim() || undefined,
-        latTap: parsedLat,
-        lngTap: parsedLng,
+        pathname: router.pathname,
+        query: { ...router.query, page: nextPage.toString() },
       },
-      {
-        onSuccess: () => {
-          toast.success("Transaksi manual berhasil dicatat");
-          setAmount("2500");
-          setRfidTag("");
-          setBusId("");
-          setStationName("");
-          setLatTap("");
-          setLngTap("");
-        },
-        onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Gagal membuat transaksi");
-        },
-      },
+      undefined,
+      { shallow: true }
     );
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini akan memulihkan saldo kartu dan status isInside jika memungkinkan.")) {
-      return;
+  // Synchronize URL to always have ?page=1 on initial load if missing
+  useEffect(() => {
+    if (router.isReady && !router.query.page) {
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, page: "1" },
+        },
+        undefined,
+        { shallow: true }
+      );
     }
+  }, [router.isReady, router.query.page]);
 
-    deleteMutation.mutate(id, {
-      onSuccess: () => {
-        toast.success("Transaksi berhasil dihapus");
-      },
-      onError: (err) => {
-        toast.error(err instanceof Error ? err.message : "Gagal menghapus transaksi");
-      },
-    });
-  };
+  const { data, isLoading, error } = useAdminTransactions(
+    search,
+    "ALL",
+    currentPage,
+    itemsPerPage,
+    userLinkFilter,
+    startDate || undefined,
+    endDate || undefined
+  );
 
-  const transactions = data?.transactions ?? [];
-  const cards = data?.cards ?? [];
-  const buses = data?.buses ?? [];
+  const uniqueUsersList = data?.users ?? [];
+  const totalItems = data?.total ?? 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = uniqueUsersList;
 
   return (
     <AdminLayout>
@@ -127,400 +100,411 @@ export default function AdminTransactionsPage() {
           description="Pantau dan kelola seluruh transaksi tapping kartu RFID pengguna pada armada bus."
         />
 
-        <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-          {/* List Section */}
+        {/* MAIN FULL-WIDTH CONTAINER */}
+        <div className="w-full">
           <Card className="border-border">
-            <CardHeader>
-              <CardTitle>Daftar Transaksi</CardTitle>
-              <CardDescription>
-                Gunakan pencarian untuk menyaring RFID, nama stasiun, bus, atau pengguna.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row">
+            <CardHeader className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+              <div>
+                <CardTitle>Daftar Pengguna Aktif</CardTitle>
+
+              </div>
+
+              {/* SEARCH & FILTERS */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full xl:w-auto flex-wrap">
                 {/* Search */}
-                <div className="flex flex-1 items-center gap-3 rounded-full border border-border bg-background px-3 py-2 shadow-sm">
-                  <Search className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-3 rounded-full border border-border bg-background px-3 py-2 shadow-sm w-full sm:w-60">
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Cari transaksi (RFID, stasiun, bus, user)..."
-                    className="border-0 bg-transparent px-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:outline-none"
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Cari pengguna atau RFID..."
+                    className="border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:outline-none w-full"
                   />
                 </div>
 
-                {/* Filter Type */}
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as any)}
-                  className="rounded-full border border-border bg-background px-4 py-2 text-sm shadow-sm outline-none focus:border-primary"
-                >
-                  <option value="ALL">Semua Tipe</option>
-                  <option value="IN">Tap In (IN)</option>
-                  <option value="OUT">Tap Out (OUT)</option>
-                  <option value="PENALTY">Denda (PENALTY)</option>
-                </select>
-              </div>
-
-              {isLoading ? (
-                <div className="py-6 text-center text-sm text-muted-foreground">Memuat transaksi...</div>
-              ) : error ? (
-                <div className="py-6 text-center text-sm text-destructive">Gagal memuat transaksi.</div>
-              ) : transactions.length === 0 ? (
-                <div className="py-6 text-center text-sm text-muted-foreground">Tidak ada transaksi ditemukan.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
-                    <thead>
-                      <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                        <th className="px-4 py-2">Info Tap</th>
-                        <th className="px-4 py-2">Pengguna & RFID</th>
-                        <th className="px-4 py-2">Bus & Stasiun</th>
-                        <th className="px-4 py-2">Biaya</th>
-                        <th className="px-4 py-2 text-right">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transactions.map((tx) => (
-                        <tr key={tx.id} className="rounded-2xl border border-border bg-card shadow-xs transition-colors hover:bg-muted/10">
-                          {/* Info Tap */}
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col">
-                              <span
-                                className={`inline-flex w-fit rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                  tx.type === TransactionTypeValue.IN
-                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                    : tx.type === TransactionTypeValue.OUT
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                                    : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
-                                }`}
-                              >
-                                {tx.type}
-                              </span>
-                              <span className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {new Intl.DateTimeFormat("id-ID", {
-                                  dateStyle: "short",
-                                  timeStyle: "short",
-                                }).format(new Date(tx.createdAt))}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Pengguna & RFID */}
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col">
-                              <span className="font-medium text-foreground">
-                                {tx.card.user?.name ?? "Tanpa Nama"}
-                              </span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <CreditCard className="h-3 w-3" />
-                                {tx.rfidTag}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Bus & Stasiun */}
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col">
-                              <span className="font-medium text-foreground flex items-center gap-1">
-                                <Bus className="h-3.5 w-3.5 text-muted-foreground" />
-                                {tx.bus.busCode} ({tx.bus.plateNumber})
-                              </span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {tx.stationName || "-"}
-                                {tx.latTap && tx.lngTap ? (
-                                  <span className="text-[10px] text-muted-foreground/60">
-                                    ({tx.latTap.toFixed(4)}, {tx.lngTap.toFixed(4)})
-                                  </span>
-                                ) : null}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Biaya */}
-                          <td className="px-4 py-3">
-                            <span className="font-semibold text-foreground">
-                              Rp {tx.amount.toLocaleString("id-ID")}
-                            </span>
-                          </td>
-
-                          {/* Aksi */}
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="text-muted-foreground hover:bg-muted"
-                                onClick={() => {
-                                  setSelectedTx(tx);
-                                  setIsDetailOpen(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="text-destructive hover:bg-destructive/10"
-                                onClick={() => handleDeleteTransaction(tx.id)}
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {/* Status Hubung Kartu Select Dropdown */}
+                <div className="relative w-full sm:w-auto">
+                  <select
+                    value={userLinkFilter}
+                    onChange={(e) => {
+                      setUserLinkFilter(e.target.value as any);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-full shadow-sm text-xs font-semibold h-[38px] px-4 w-full sm:w-auto border border-border bg-background hover:bg-muted/30 text-foreground cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="ALL">Semua Kartu</option>
+                    <option value="LINKED">Terhubung Pengguna</option>
+                    <option value="UNLINKED">Belum Terhubung</option>
+                  </select>
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Form Section */}
-          <Card className="border-border self-start">
-            <CardHeader>
-              <CardTitle>Catat Transaksi Manual</CardTitle>
-              <CardDescription>
-                Simulasikan atau buat entri transaksi baru langsung ke database.
-              </CardDescription>
+                {/* Date range filters Dropdown */}
+                <div className="relative w-full sm:w-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                    className="rounded-full shadow-sm text-xs font-semibold gap-1.5 h-[38px] px-4 w-full sm:w-auto border-border bg-background hover:bg-muted/30"
+                  >
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    {startDate || endDate ? (
+                      <span className="text-primary font-bold">
+                        {startDate && !endDate && `Mulai: ${startDate}`}
+                        {!startDate && endDate && `Selesai: ${endDate}`}
+                        {startDate && endDate && `${startDate} s/d ${endDate}`}
+                      </span>
+                    ) : (
+                      "Filter Tanggal"
+                    )}
+                  </Button>
+
+                  {isDateDropdownOpen && (
+                    <>
+                      {/* Close dropdown on click outside */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsDateDropdownOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-border bg-card p-4 shadow-lg z-20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-100">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="popover-start-date" className="text-xs font-semibold text-muted-foreground">
+                            Tanggal Mulai
+                          </Label>
+                          <Input
+                            id="popover-start-date"
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => {
+                              setStartDate(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                            className="text-xs w-full"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="popover-end-date" className="text-xs font-semibold text-muted-foreground">
+                            Tanggal Selesai
+                          </Label>
+                          <Input
+                            id="popover-end-date"
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => {
+                              setEndDate(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                            className="text-xs w-full"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-border/80">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStartDate("");
+                              setEndDate("");
+                              setCurrentPage(1);
+                              setIsDateDropdownOpen(false);
+                            }}
+                            className="text-xs text-destructive hover:underline font-semibold disabled:opacity-50 disabled:hover:no-underline"
+                            disabled={!startDate && !endDate}
+                          >
+                            Reset Filter
+                          </button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setIsDateDropdownOpen(false)}
+                            className="text-xs px-3.5"
+                          >
+                            Tutup
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Type */}
-              <div className="space-y-2">
-                <Label htmlFor="txType">Tipe Transaksi</Label>
-                <select
-                  id="txType"
-                  value={txType}
-                  onChange={(e) => setTxType(e.target.value as TransactionTypeValue)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus:border-primary"
-                >
-                  <option value={TransactionTypeValue.IN}>Tap In (Masuk)</option>
-                  <option value={TransactionTypeValue.OUT}>Tap Out (Keluar)</option>
-                  <option value={TransactionTypeValue.PENALTY}>Penalty (Denda)</option>
-                </select>
-              </div>
+              {isLoading ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">Memuat transaksi...</div>
+              ) : error ? (
+                <div className="py-12 text-center text-sm text-destructive">Gagal memuat transaksi.</div>
+              ) : uniqueUsersList.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">Tidak ada pengguna ditemukan.</div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
+                      <thead>
+                        <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                          <th className="px-4 py-2">Tanggal Terakhir</th>
+                          <th className="px-4 py-2">Pengguna & RFID</th>
+                          <th className="px-4 py-2">Bus & Stasiun Terakhir</th>
+                          <th className="px-4 py-2 text-right">Detail Riwayat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedUsers.map((user) => (
+                          <tr key={user.rfidTag} className="rounded-2xl border border-border bg-card shadow-xs transition-colors hover:bg-muted/10">
+                            {/* Tanggal Terakhir */}
+                            <td className="px-4 py-3">
+                              <span className="flex items-center gap-1.5 text-xs text-foreground font-medium">
+                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                {new Intl.DateTimeFormat("id-ID", {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                }).format(new Date(user.latestTx.createdAt))}
+                              </span>
+                            </td>
 
-              {/* Amount */}
-              <div className="space-y-2">
-                <Label htmlFor="amount">Jumlah Biaya (Rp)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="2500"
-                />
-              </div>
+                            {/* Pengguna & RFID */}
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-foreground">
+                                  {user.userName}
+                                </span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <CreditCard className="h-3 w-3" />
+                                  {user.rfidTag}
+                                </span>
+                              </div>
+                            </td>
 
-              {/* Card Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="rfidSelect">Pilih RFID / Kartu</Label>
-                <select
-                  id="rfidSelect"
-                  value={rfidTag}
-                  onChange={(e) => setRfidTag(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus:border-primary"
-                >
-                  <option value="">-- Pilih Kartu RFID --</option>
-                  {cards.map((card) => (
-                    <option key={card.rfidTag} value={card.rfidTag}>
-                      {card.rfidTag}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                            {/* Bus & Stasiun Terakhir */}
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-foreground flex items-center gap-1">
+                                  <Bus className="h-3.5 w-3.5 text-muted-foreground" />
+                                  {user.latestTx.bus.busCode} ({user.latestTx.bus.plateNumber})
+                                </span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {user.latestTx.stationName || "-"}
+                                </span>
+                              </div>
+                            </td>
 
-              {/* Bus Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="busSelect">Pilih Bus</Label>
-                <select
-                  id="busSelect"
-                  value={busId}
-                  onChange={(e) => setBusId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus:border-primary"
-                >
-                  <option value="">-- Pilih Bus --</option>
-                  {buses.map((bus) => (
-                    <option key={bus.id} value={bus.id}>
-                      {bus.busCode} ({bus.plateNumber})
-                    </option>
-                  ))}
-                </select>
-              </div>
+                            {/* Aksi */}
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex justify-end">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-muted-foreground hover:bg-muted"
+                                  onClick={() => {
+                                    setSelectedUserGroup(user);
+                                    setIsDetailOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-              {/* Station Name */}
-              <div className="space-y-2">
-                <Label htmlFor="stationName">Nama Stasiun / Halte (opsional)</Label>
-                <Input
-                  id="stationName"
-                  value={stationName}
-                  onChange={(e) => setStationName(e.target.value)}
-                  placeholder="Contoh: Halte Menur"
-                />
-              </div>
+                  {/* PAGINATION CONTROLS */}
+                  {totalItems > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border pt-4 px-2">
+                      <div className="text-xs text-muted-foreground">
+                        Menampilkan <span className="font-semibold text-foreground">{totalItems === 0 ? 0 : startIndex + 1}</span> -{" "}
+                        <span className="font-semibold text-foreground">
+                          {Math.min(endIndex, totalItems)}
+                        </span>{" "}
+                        dari <span className="font-semibold text-foreground">{totalItems}</span> pengguna
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1 || totalPages <= 1}
+                        >
+                          <ChevronLeft className="mr-1 h-3.5 w-3.5" /> Sebelumnya
+                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                          {totalPages > 0 ? (
+                            Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                              if (
+                                page === 1 ||
+                                page === totalPages ||
+                                (page >= currentPage - 2 && page <= currentPage + 2)
+                              ) {
+                                return (
+                                  <Button
+                                    key={page}
+                                    variant={currentPage === page ? "default" : "outline"}
+                                    size="icon-sm"
+                                    className="h-8 w-8 text-xs rounded-lg font-medium"
+                                    onClick={() => setCurrentPage(page)}
+                                  >
+                                    {page}
+                                  </Button>
+                                );
+                              }
+                              if (page === currentPage - 3 || page === currentPage + 3) {
+                                return (
+                                  <span key={page} className="text-muted-foreground px-1 text-xs select-none">
+                                    ...
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })
+                          ) : (
+                            <Button
+                              variant="default"
+                              size="icon-sm"
+                              className="h-8 w-8 text-xs rounded-lg font-medium"
+                              disabled
+                            >
+                              1
+                            </Button>
+                          )}
+                        </div>
 
-              {/* Lat & Lng */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="latTap">Latitude (opsional)</Label>
-                  <Input
-                    id="latTap"
-                    value={latTap}
-                    onChange={(e) => setLatTap(e.target.value)}
-                    placeholder="-7.1234"
-                  />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages || totalPages <= 1}
+                        >
+                          Berikutnya <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lngTap">Longitude (opsional)</Label>
-                  <Input
-                    id="lngTap"
-                    value={lngTap}
-                    onChange={(e) => setLngTap(e.target.value)}
-                    placeholder="112.5678"
-                  />
-                </div>
-              </div>
-
-              <Button
-                onClick={handleCreateTransaction}
-                className="w-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95"
-                disabled={createMutation.isPending}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Catat Transaksi
-              </Button>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
 
+      {/* DETAIL MODAL */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-xl rounded-3xl border border-border bg-card">
           <DialogHeader>
-            <DialogTitle>Detail Transaksi</DialogTitle>
+            <DialogTitle>Detail Riwayat Pengguna</DialogTitle>
             <DialogDescription>
-              Rincian data transaksi tap kartu RFID.
+              Rincian seluruh transaksi Tap In & Tap Out untuk pengguna ini.
             </DialogDescription>
           </DialogHeader>
 
-          {selectedTx && (
+          {selectedUserGroup && (
             <div className="space-y-6 py-2">
-              {/* Receipt styling */}
-              <div className="rounded-2xl bg-muted/30 p-4 border border-border/50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">ID Transaksi</span>
-                    <p className="font-mono text-sm font-semibold text-foreground select-all mt-0.5">{selectedTx.id}</p>
-                  </div>
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                      selectedTx.type === TransactionTypeValue.IN
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                        : selectedTx.type === TransactionTypeValue.OUT
-                        ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                        : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
-                    }`}
-                  >
-                    {selectedTx.type === TransactionTypeValue.IN
-                      ? "Tap In (IN)"
-                      : selectedTx.type === TransactionTypeValue.OUT
-                      ? "Tap Out (OUT)"
-                      : "Denda (PENALTY)"}
-                  </span>
+              {/* User Info Card */}
+              <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-muted/30 border border-border/60">
+                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg shrink-0">
+                  {selectedUserGroup.userName.charAt(0).toUpperCase()}
                 </div>
-
-                <div className="mt-4 border-t border-border/50 pt-4 flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Waktu Tap</span>
-                    <p className="text-sm font-medium mt-0.5">
-                      {new Intl.DateTimeFormat("id-ID", {
-                        dateStyle: "long",
-                        timeStyle: "medium",
-                      }).format(new Date(selectedTx.createdAt))}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Biaya / Tarif</span>
-                    <p className="text-lg font-bold text-foreground mt-0.5">
-                      Rp {selectedTx.amount.toLocaleString("id-ID")}
-                    </p>
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-base font-bold text-foreground truncate">{selectedUserGroup.userName}</h4>
+                  <p className="text-xs text-muted-foreground truncate">{selectedUserGroup.userEmail}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground/80 mt-0.5">RFID: {selectedUserGroup.rfidTag}</p>
                 </div>
               </div>
 
-              {/* Grid of details */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* RFID and User Card */}
-                <div className="space-y-1 p-3.5 rounded-xl border border-border bg-card shadow-xs">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">
-                    <CreditCard className="h-3.5 w-3.5" />
-                    Kartu & Pengguna
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-muted-foreground">RFID Tag</span>
-                    <p className="text-sm font-mono font-medium">{selectedTx.rfidTag}</p>
-                  </div>
-                  <div className="pt-2 mt-2 border-t border-border/40">
-                    <span className="text-[10px] text-muted-foreground">Nama Pengguna</span>
-                    <p className="text-sm font-medium text-foreground">{selectedTx.card.user?.name ?? "Tanpa Nama"}</p>
-                  </div>
-                  <div className="pt-1">
-                    <span className="text-[10px] text-muted-foreground">Email</span>
-                    <p className="text-sm text-muted-foreground truncate">{selectedTx.card.user?.email ?? "Tidak ada email"}</p>
-                  </div>
-                </div>
+              {/* Timeline list of tapping events */}
+              <div className="space-y-4">
+                <h5 className="text-sm font-semibold text-foreground">
+                  Daftar Perjalanan ({selectedUserGroup.txList.length})
+                </h5>
 
-                {/* Bus and Station */}
-                <div className="space-y-1 p-3.5 rounded-xl border border-border bg-card shadow-xs">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">
-                    <Bus className="h-3.5 w-3.5" />
-                    Armada & Lokasi
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-muted-foreground">Kode Bus</span>
-                    <p className="text-sm font-medium text-foreground">{selectedTx.bus.busCode}</p>
-                  </div>
-                  <div className="pt-2 mt-2 border-t border-border/40">
-                    <span className="text-[10px] text-muted-foreground">Nomor Polisi</span>
-                    <p className="text-sm font-medium text-foreground">{selectedTx.bus.plateNumber}</p>
-                  </div>
-                  <div className="pt-1">
-                    <span className="text-[10px] text-muted-foreground">Halte / Stasiun</span>
-                    <p className="text-sm text-foreground font-medium truncate">{selectedTx.stationName || "-"}</p>
-                  </div>
-                </div>
-              </div>
+                <div className="max-h-[350px] overflow-y-auto pr-1 space-y-4 scrollbar-thin">
+                  {selectedUserGroup.txList.map((tx) => (
+                    <div key={tx.id} className="relative pl-6 border-l-2 border-border/80 last:border-l-0 pb-1">
+                      {/* Timeline Indicator Dot */}
+                      <span className={`absolute left-[-6.5px] top-2 w-3 h-3 rounded-full border-2 border-card ${
+                        tx.type === TransactionTypeValue.IN
+                          ? "bg-emerald-500"
+                          : tx.type === TransactionTypeValue.OUT
+                          ? "bg-blue-500"
+                          : "bg-red-500"
+                      }`} />
 
-              {/* Coordinates / Map Pin */}
-              <div className="p-3.5 rounded-xl border border-border bg-card shadow-xs space-y-3">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                  <MapPin className="h-3.5 w-3.5" />
-                  Koordinat Lokasi Tap
-                </div>
-                {selectedTx.latTap && selectedTx.lngTap ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {selectedTx.latTap.toFixed(6)}, {selectedTx.lngTap.toFixed(6)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Latitude, Longitude</p>
+                      <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3 transition-colors hover:border-border/100">
+                        {/* Event Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                              tx.type === TransactionTypeValue.IN
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : tx.type === TransactionTypeValue.OUT
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                                : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                            }`}>
+                              {tx.type === TransactionTypeValue.IN
+                                ? "Tap In (Masuk)"
+                                : tx.type === TransactionTypeValue.OUT
+                                ? "Tap Out (Keluar)"
+                                : "Denda (Penalty)"}
+                            </span>
+                            
+                            <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground/80" />
+                              {new Intl.DateTimeFormat("id-ID", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              }).format(new Date(tx.createdAt))}
+                            </p>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Tarif</span>
+                            <span className="text-sm font-bold text-foreground">
+                              Rp {tx.amount.toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Event Grid Details */}
+                        <div className="grid grid-cols-2 gap-3 text-xs border-t border-border/50 pt-3">
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block uppercase tracking-wider">Bus</span>
+                            <span className="font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+                              <Bus className="h-3.5 w-3.5 text-muted-foreground/75" />
+                              {tx.bus.busCode} ({tx.bus.plateNumber})
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block uppercase tracking-wider">Stasiun</span>
+                            <span className="font-semibold text-foreground flex items-center gap-1.5 mt-0.5 truncate block">
+                              <MapPin className="h-3.5 w-3.5 text-muted-foreground/75" />
+                              {tx.stationName || "-"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* GPS Coordinates link */}
+                        {tx.latTap && tx.lngTap && (
+                          <div className="flex items-center justify-between text-xs pt-2.5 border-t border-border/30">
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              GPS: {tx.latTap.toFixed(6)}, {tx.lngTap.toFixed(6)}
+                            </span>
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${tx.latTap},${tx.lngTap}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-semibold"
+                            >
+                              Buka Google Maps <ExternalLink className="h-2.5 w-2.5" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${selectedTx.latTap},${selectedTx.lngTap}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary px-3.5 py-2 text-xs font-semibold transition"
-                    >
-                      Buka Google Maps <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground pt-1">Koordinat GPS tidak tersedia pada transaksi ini.</p>
-                )}
+                  ))}
+                </div>
               </div>
             </div>
           )}

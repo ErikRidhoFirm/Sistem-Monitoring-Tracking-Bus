@@ -54,9 +54,14 @@ const transactionKeys = {
 export function useAdminTransactions(
   search: string,
   type: TransactionTypeValue | "ALL",
+  page: number = 1,
+  limit: number = 10,
+  userLinkFilter: "ALL" | "LINKED" | "UNLINKED" = "ALL",
+  startDate?: string,
+  endDate?: string,
 ) {
   return useQuery({
-    queryKey: transactionKeys.list(search, type),
+    queryKey: ["admin", "transactions", "list", search, type, page, limit, userLinkFilter, startDate, endDate],
     queryFn: () => {
       const params = new URLSearchParams();
 
@@ -68,12 +73,30 @@ export function useAdminTransactions(
         params.set("type", type);
       }
 
-      const query = params.toString();
-      const url = query
-        ? `/api/admin/transactions?${query}`
-        : "/api/admin/transactions";
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
+      params.set("userLinkFilter", userLinkFilter);
 
-      return requestApi<TransactionsListPayload>(url);
+      if (startDate) {
+        params.set("startDate", startDate);
+      }
+      if (endDate) {
+        params.set("endDate", endDate);
+      }
+
+      const query = params.toString();
+      const url = `/api/admin/transactions?${query}`;
+
+      return requestApi<{
+        users: Array<{
+          rfidTag: string;
+          userName: string;
+          userEmail: string;
+          latestTx: any;
+          txList: any[];
+        }>;
+        total: number;
+      }>(url);
     },
   });
 }
