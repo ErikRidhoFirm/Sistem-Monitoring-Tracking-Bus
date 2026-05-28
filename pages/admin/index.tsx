@@ -168,7 +168,7 @@ export default function AdminPage() {
           {metricItems.map((metric) => {
             const Icon = metric.icon;
             const cardContent = (
-              <div className={dashboardSurfaceClassName + " p-6"}>
+              <Card className={dashboardSurfaceClassName + " p-6"}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
@@ -183,7 +183,7 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <p className="mt-5 text-sm text-muted-foreground">{metric.description}</p>
-              </div>
+              </Card>
             );
 
             return metric.href ? (
@@ -208,7 +208,7 @@ export default function AdminPage() {
               {!profitQuery.isLoading && !profitQuery.isError ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {profitItems.map((item) => (
-                    <div
+                    <Card
                       key={item.label}
                       className={dashboardSoftCardClassName + " p-5"}
                     >
@@ -219,7 +219,7 @@ export default function AdminPage() {
                         {formatCurrency(item.value)}
                       </p>
                       <p className="mt-3 text-sm text-muted-foreground">{item.description}</p>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               ) : null}
@@ -255,32 +255,34 @@ export default function AdminPage() {
                       <Link
                         key={item.id}
                         href={`/admin/rfid/${encodeURIComponent(item.card.rfidTag)}`}
-                        className={dashboardSoftCardClassName + " group block p-4"}
+                        className="group block"
                       >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="font-semibold text-foreground">
-                              {item.type === "IN" ? "Tap In" : item.type === "OUT" ? "Tap Out" : "Penalty"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.card.user?.name ?? item.card.rfidTag} • {item.bus.busCode}
-                            </p>
-                            <p className="mt-1 text-sm font-medium text-foreground">
-                              {formatCurrency(item.amount)}
-                            </p>
+                        <Card className={dashboardSoftCardClassName + " p-4"}>
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-semibold text-foreground">
+                                {item.type === "IN" ? "Tap In" : item.type === "OUT" ? "Tap Out" : "Penalty"}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {item.card.user?.name ?? item.card.rfidTag} • {item.bus.busCode}
+                              </p>
+                              <p className="mt-1 text-sm font-medium text-foreground">
+                                {formatCurrency(item.amount)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-muted-foreground">
+                                {new Intl.DateTimeFormat("id-ID", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }).format(new Date(item.createdAt))}
+                              </p>
+                              <p className="text-sm font-semibold">
+                                {item.stationName ?? "Lokasi tidak tersedia"}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">
-                              {new Intl.DateTimeFormat("id-ID", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }).format(new Date(item.createdAt))}
-                            </p>
-                            <p className="text-sm font-semibold">
-                              {item.stationName ?? "Lokasi tidak tersedia"}
-                            </p>
-                          </div>
-                        </div>
+                        </Card>
                       </Link>
                     ))
                   ) : (
