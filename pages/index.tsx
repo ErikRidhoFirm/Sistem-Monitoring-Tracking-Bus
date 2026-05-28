@@ -3,9 +3,12 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import { authClient } from "@/lib/auth-client";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/line-chart";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -27,6 +30,21 @@ export default function Home() {
     { route: "Rute C", destination: "Fakultas Teknik", eta: "07 min" },
     { route: "Rute B", destination: "Asrama Mahasiswa", eta: "11 min" },
   ];
+  const chartData = [
+    { day: "Sen", trips: 12 },
+    { day: "Sel", trips: 18 },
+    { day: "Rab", trips: 15 },
+    { day: "Kam", trips: 21 },
+    { day: "Jum", trips: 24 },
+    { day: "Sab", trips: 19 },
+  ];
+
+  const chartConfig = {
+    trips: {
+      label: "Trip",
+      color: "var(--chart-2)",
+    },
+  } satisfies ChartConfig;
 
   return (
     <div
@@ -219,6 +237,53 @@ export default function Home() {
               Sinkronisasi posisi bus setiap 8 detik
             </div>
           </aside>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+          <Card className="border-[#245bb0]/15 bg-white/70 shadow-[0_12px_40px_rgba(36,91,176,0.08)] backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle style={{ fontFamily: "var(--font-display)" }} className="text-2xl text-[#173330]">
+                Statistik Trip Mingguan
+              </CardTitle>
+              <CardDescription className="text-[#1f3d3a]/70">
+                Ringkasan jumlah perjalanan bus selama 6 hari terakhir.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[280px] w-full">
+                <LineChart data={chartData} margin={{ left: 12, right: 12 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="day"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                  <Line
+                    dataKey="trips"
+                    type="monotone"
+                    stroke="var(--color-trips)"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "var(--color-trips)" }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <div className="reveal rounded-[2rem] border border-[#245bb0]/15 bg-white/65 p-6 shadow-[0_12px_40px_rgba(36,91,176,0.08)] backdrop-blur-sm" style={{ animationDelay: "760ms" }}>
+            <p className="text-xs tracking-[0.2em] text-[#1f3d3a]/60 uppercase">
+              Daily Snapshot
+            </p>
+            <h2 style={{ fontFamily: "var(--font-display)" }} className="mt-3 text-3xl font-semibold text-[#173330]">
+              Dashboard Operasional Kampus
+            </h2>
+            <p className="mt-4 max-w-lg text-sm leading-7 text-[#1f3d3a]/75 md:text-base">
+              Grafik ini memberi gambaran cepat tren perjalanan bus, sehingga jadwal dan beban armada lebih mudah dibaca dari satu layar.
+            </p>
+          </div>
         </section>
 
         <section

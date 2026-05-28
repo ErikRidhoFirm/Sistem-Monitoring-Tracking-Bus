@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/admin/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import SelectMenu from "@/components/ui/select-menu";
 import { CreditCard, Sparkles, Users, Wifi } from "lucide-react";
 import { useAdminBuses } from "@/lib/hooks/use-admin-buses";
 import { useAdminOverviewByBus } from "@/lib/hooks/use-admin-overview";
@@ -24,6 +25,14 @@ export default function AdminPage() {
     selectedBusId === "ALL"
       ? "semua armada"
       : `${selectedBus?.busCode ?? selectedBusId} ${selectedBus?.plateNumber ? `(${selectedBus.plateNumber})` : ""}`;
+
+  const busOptions = [
+    { value: "ALL", label: "All bus" },
+    ...(busesQuery.data?.buses.map((bus) => ({
+      value: bus.id,
+      label: `${bus.busCode} - ${bus.plateNumber}`,
+    })) ?? []),
+  ];
 
   const formatCurrency = (value: number | undefined) =>
     new Intl.NumberFormat("id-ID", {
@@ -111,23 +120,20 @@ export default function AdminPage() {
           description="Ringkasan data dan 5 transaksi terakhir hari ini."
           actions={
             <>
-            <select
-              aria-label="Filter bus"
-              className="h-10 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-[#f4f1e8] shadow-sm outline-none backdrop-blur transition-colors focus:border-white/30"
+            <SelectMenu
               value={selectedBusId}
-              onChange={(event) => setSelectedBusId(event.target.value as string | "ALL")}
-            >
-              <option value="ALL">All bus</option>
-              {busesQuery.data?.buses.map((bus) => (
-                <option key={bus.id} value={bus.id}>
-                  {bus.busCode} - {bus.plateNumber}
-                </option>
-              ))}
-            </select>
+              onValueChange={(nextValue) => setSelectedBusId(nextValue as string | "ALL")}
+              options={busOptions}
+              placeholder="Filter bus"
+              searchPlaceholder="Cari bus"
+              emptyMessage="Bus tidak ditemukan."
+              className="w-64"
+              triggerClassName="h-10"
+            />
             <Button
               size="sm"
               variant="secondary"
-              className="rounded-full border border-white/15 bg-white/10 text-[#f4f1e8] shadow-sm hover:bg-white/15"
+              className="h-10 rounded-full border border-white/15 bg-white/10 px-4 text-[#f4f1e8] shadow-sm hover:bg-white/15"
               onClick={() => {
                 overviewQuery.refetch();
                 busesQuery.refetch();
@@ -144,7 +150,7 @@ export default function AdminPage() {
               Refresh data
             </Button>
             <Link href="/admin/iot-devices">
-              <Button size="sm" className="rounded-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95">
+              <Button size="sm" className="h-10 rounded-full bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] px-4 text-white shadow-[0_12px_30px_rgba(255,122,47,0.28)] hover:opacity-95">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>Tambah Sensor Baru
               </Button>
             </Link>
@@ -187,24 +193,12 @@ export default function AdminPage() {
         <section>
           <Card>
             <CardHeader>
-              <CardTitle>Profit Bus</CardTitle>
+              <CardTitle>Ringkasan Profit</CardTitle>
               <CardDescription>
-                Menampilkan profit harian, mingguan, dan bulanan untuk {selectedBusLabel}.
+                Nilai profit utama untuk {selectedBusLabel} dalam empat rentang waktu.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {profitQuery.isLoading ? (
-                <p className="text-sm text-muted-foreground">Memuat profit...</p>
-              ) : null}
-
-              {profitQuery.isError ? (
-                <p className="text-sm text-destructive">
-                  {profitQuery.error instanceof Error
-                    ? profitQuery.error.message
-                    : "Gagal memuat profit."}
-                </p>
-              ) : null}
-
               {!profitQuery.isLoading && !profitQuery.isError ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {profitItems.map((item) => (

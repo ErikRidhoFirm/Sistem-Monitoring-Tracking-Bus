@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   BusItem,
   useAdminBuses,
@@ -30,7 +31,6 @@ import {
   Edit3,
   Gauge,
   Plus,
-  Search,
   Sparkles,
   Trash2,
   Users,
@@ -290,15 +290,12 @@ export default function AdminBusPage() {
               </CardDescription>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2 shadow-sm">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari bus"
-                  className="border-0 bg-transparent px-0 text-sm focus-visible:ring-0"
-                />
-              </div>
+              <SearchInput
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari bus"
+                className="w-full sm:w-72"
+              />
               <div className="flex items-center gap-2 rounded-full border border-border bg-background p-1 text-sm shadow-sm">
                 {(["ALL", "ACTIVE", "INACTIVE"] as const).map((option) => (
                   <button
