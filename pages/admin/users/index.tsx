@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/layout";
 import UserTable from "@/components/user/UserTable";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +6,8 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { BadgeCheck, Shield, Users, UserRound } from "lucide-react";
+import { BadgeCheck, Shield, Users, UserRound, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface User {
   id: string;
@@ -26,22 +27,75 @@ export default function UserPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState<"Semua" | "ADMIN" | "USER">("Semua");
 
+  // Pagination states (URL Query Param-Based)
+  const queryPage = router.query.page;
+  const currentPage = router.isReady && typeof queryPage === "string" ? parseInt(queryPage, 10) || 1 : 1;
+  const itemsPerPage = 10;
+
+  const setCurrentPage = (value: number | ((prev: number) => number)) => {
+    const nextPage = typeof value === "function" ? value(currentPage) : value;
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: nextPage.toString() },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  // Synchronize URL to always have ?page=1 on initial load if missing
+  useEffect(() => {
+    if (router.isReady && !router.query.page) {
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, page: "1" },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router.isReady, router.query.page]);
+
   // State untuk Modal View
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-  // GET: Mengambil data user
-  const { data: usersData, isLoading } = useQuery<{ data: User[] }>({
-    queryKey: ["admin-users"],
+  // GET: Mengambil data user (Server-side Paginated & Filtered)
+  const { data: usersData, isLoading } = useQuery<{
+    success: boolean;
+    data: {
+      users: User[];
+      total: number;
+      stats: {
+        totalUsers: number;
+        totalAdmin: number;
+        totalUserBiasa: number;
+        totalVerified: number;
+      };
+    };
+  }>({
+    queryKey: ["admin-users", searchQuery, filterRole, currentPage],
     queryFn: async () => {
-      const res = await fetch("/api/admin/users");
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      if (filterRole !== "Semua") params.set("role", filterRole);
+      params.set("page", currentPage.toString());
+      params.set("limit", itemsPerPage.toString());
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.errors?.[0]?.message || "Gagal mengambil data");
       return json;
     },
   });
 
-  const users = usersData?.data || [];
+  const users = usersData?.data?.users || [];
+  const totalItems = usersData?.data?.total || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
 
   // DELETE: Hapus User
   const deleteMutation = useMutation({
@@ -76,11 +130,12 @@ export default function UserPage() {
     deleteMutation.mutate(id);
   };
 
-  // Kalkulasi Statistik
-  const totalUsers = users.length;
-  const totalAdmin = users.filter((u: User) => u.role === 'ADMIN').length;
-  const totalUserBiasa = users.filter((u: User) => u.role === 'USER').length;
-  const totalVerified = users.filter((u: User) => u.emailVerified).length;
+  // Kalkulasi Statistik secara Server-side
+  const stats = usersData?.data?.stats;
+  const totalUsers = stats?.totalUsers || 0;
+  const totalAdmin = stats?.totalAdmin || 0;
+  const totalUserBiasa = stats?.totalUserBiasa || 0;
+  const totalVerified = stats?.totalVerified || 0;
 
   const summaryCards = [
     {
@@ -112,14 +167,6 @@ export default function UserPage() {
       iconClassName: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
     },
   ];
-
-  // Filter Data Tabel
-  const filteredUsers = users.filter((user: User) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterRole === "Semua" ? true : user.role === filterRole;
-    return matchesSearch && matchesFilter;
-  });
 
   return (
     <AdminLayout>
@@ -188,7 +235,10 @@ export default function UserPage() {
                   type="text" 
                   placeholder="Cari user..." 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
                 />
               </div>
@@ -197,7 +247,10 @@ export default function UserPage() {
                 {(["Semua", "ADMIN", "USER"] as const).map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setFilterRole(tab)}
+                    onClick={() => {
+                      setFilterRole(tab);
+                      setCurrentPage(1);
+                    }}
                     className={`px-4 py-1.5 text-xs font-semibold rounded-full transition ${
                       filterRole === tab 
                         ? "bg-blue-600 text-white shadow" 
@@ -220,7 +273,80 @@ export default function UserPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               )}
-              <UserTable users={filteredUsers} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
+              <UserTable users={users} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
+
+              {/* PAGINATION CONTROLS */}
+              {totalItems > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 p-5">
+                  <div className="text-xs text-muted-foreground">
+                    Menampilkan <span className="font-semibold text-foreground">{totalItems === 0 ? 0 : startIndex + 1}</span> -{" "}
+                    <span className="font-semibold text-foreground">
+                      {Math.min(endIndex, totalItems)}
+                    </span>{" "}
+                    dari <span className="font-semibold text-foreground">{totalItems}</span> pengguna
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1 || totalPages <= 1}
+                    >
+                      <ChevronLeft className="mr-1 h-3.5 w-3.5" /> Sebelumnya
+                    </Button>
+                    
+                    <div className="flex items-center gap-1">
+                      {totalPages > 0 ? (
+                        Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 2 && page <= currentPage + 2)
+                          ) {
+                            return (
+                              <Button
+                                key={page}
+                                variant={currentPage === page ? "default" : "outline"}
+                                size="icon-sm"
+                                className="h-8 w-8 text-xs rounded-lg font-medium"
+                                onClick={() => setCurrentPage(page)}
+                              >
+                                {page}
+                              </Button>
+                            );
+                          }
+                          if (page === currentPage - 3 || page === currentPage + 3) {
+                            return (
+                              <span key={page} className="text-muted-foreground px-1 text-xs select-none">
+                                ...
+                              </span>
+                            );
+                          }
+                          return null;
+                        })
+                      ) : (
+                        <Button
+                          variant="default"
+                          size="icon-sm"
+                          className="h-8 w-8 text-xs rounded-lg font-medium"
+                          disabled
+                        >
+                          1
+                        </Button>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages || totalPages <= 1}
+                    >
+                      Berikutnya <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
