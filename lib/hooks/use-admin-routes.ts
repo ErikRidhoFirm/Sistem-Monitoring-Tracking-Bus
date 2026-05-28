@@ -25,6 +25,7 @@ export type StationOption = {
 type RoutesListPayload = {
   routes: RouteItem[];
   stations: StationOption[];
+  total?: number;
 };
 
 type RoutePayload = {
@@ -35,16 +36,23 @@ type RoutePayload = {
 
 const routesKeys = {
   all: ["admin", "routes"] as const,
-  list: (search: string) => ["admin", "routes", "list", search] as const,
+  list: (search: string, page?: number, limit?: number) =>
+    ["admin", "routes", "list", { search, page, limit }] as const,
 };
 
-export function useAdminRoutes(search: string) {
+export function useAdminRoutes(search: string, page?: number, limit?: number) {
   return useQuery({
-    queryKey: routesKeys.list(search),
+    queryKey: routesKeys.list(search, page, limit),
     queryFn: () => {
       const params = new URLSearchParams();
       if (search.trim()) {
         params.set("search", search.trim());
+      }
+      if (page !== undefined) {
+        params.set("page", page.toString());
+      }
+      if (limit !== undefined) {
+        params.set("limit", limit.toString());
       }
 
       const query = params.toString();

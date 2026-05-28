@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAdminCards, useCreateCardMutation, useDeleteCardMutation } from "@/lib/hooks/use-admin-cards";
-import { Search, Trash2, Plus } from "lucide-react";
+import { Search, Trash2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { useRouter } from "next/router";
 
 export default function CardManager() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [rfidTag, setRfidTag] = useState("");
   const [balance, setBalance] = useState("0");
@@ -16,7 +18,37 @@ export default function CardManager() {
   const [userId, setUserId] = useState("");
   const [lastBusId, setLastBusId] = useState("");
 
-  const { data, isLoading, error } = useAdminCards(search);
+  // Pagination states
+  const queryPage = router.query.page;
+  const currentPage = router.isReady && typeof queryPage === "string" ? parseInt(queryPage, 10) || 1 : 1;
+  const itemsPerPage = 10;
+
+  const setCurrentPage = (value: number | ((prev: number) => number)) => {
+    const nextPage = typeof value === "function" ? value(currentPage) : value;
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: nextPage.toString() },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  useEffect(() => {
+    if (router.isReady && !router.query.page) {
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, page: "1" },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router.isReady, router.query.page]);
+
+  const { data, isLoading, error } = useAdminCards(search, currentPage, itemsPerPage);
   const createCardMutation = useCreateCardMutation();
   const deleteCardMutation = useDeleteCardMutation();
 
@@ -72,6 +104,8 @@ export default function CardManager() {
   const cards = data?.cards ?? [];
   const users = data?.users ?? [];
   const buses = data?.buses ?? [];
+  const totalItems = data?.total ?? 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -83,7 +117,7 @@ export default function CardManager() {
 
       <section className="space-y-3">
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <Card>
+          <Card className="min-w-0">
             <CardHeader>
               <CardTitle>Daftar Kartu RFID</CardTitle>
               <CardDescription>Cari berdasarkan tag, nama pengguna, atau nomor bus.</CardDescription>
@@ -93,7 +127,10 @@ export default function CardManager() {
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setCurrentPage(1);
+                  }}
                   placeholder="Cari kartu RFID"
                   className="border-0 bg-transparent px-0 text-sm focus-visible:ring-0"
                 />
@@ -106,55 +143,130 @@ export default function CardManager() {
               ) : cards.length === 0 ? (
                 <div className="text-sm text-muted-foreground">Belum ada kartu RFID terdaftar.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
-                    <thead>
-                      <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                        <th className="px-4 py-3">Tag</th>
-                        <th className="px-4 py-3">Saldo</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">User</th>
-                        <th className="px-4 py-3">Bus Terakhir</th>
-                        <th className="px-4 py-3">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cards.map((card) => (
-                        <tr key={card.rfidTag} className="rounded-[18px] border border-border bg-card shadow-sm">
-                          <td className="px-4 py-4 font-medium text-foreground">{card.rfidTag}</td>
-                          <td className="px-4 py-4 text-muted-foreground">Rp {card.balance.toLocaleString("id-ID")}</td>
-                          <td className="px-4 py-4">
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                                card.status === "active"
-                                  ? "bg-emerald-100 text-emerald-900"
-                                  : "bg-slate-100 text-slate-900"
-                              }`}
-                            >
-                              {card.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-muted-foreground">
-                            {card.user?.name ?? card.user?.email ?? "-"}
-                          </td>
-                          <td className="px-4 py-4 text-muted-foreground">
-                            {card.lastBus ? `${card.lastBus.busCode} (${card.lastBus.plateNumber})` : "-"}
-                          </td>
-                          <td className="px-4 py-4">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteCard(card.rfidTag)}
-                              disabled={deleteCardMutation.isPending}
-                            >
-                              <Trash2 className="mr-2" /> Hapus
-                            </Button>
-                          </td>
+                <>
+                  <div className="w-full overflow-x-auto">
+                    <table className="w-full border-separate border-spacing-y-3 text-left text-sm whitespace-nowrap">
+                      <thead>
+                        <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                          <th className="px-4 py-3">Tag</th>
+                          <th className="px-4 py-3">Saldo</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">User</th>
+                          <th className="px-4 py-3">Bus Terakhir</th>
+                          <th className="px-4 py-3">Aksi</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {cards.map((card) => (
+                          <tr key={card.rfidTag} className="rounded-[18px] border border-border bg-card shadow-sm">
+                            <td className="px-4 py-4 font-medium text-foreground">{card.rfidTag}</td>
+                            <td className="px-4 py-4 text-muted-foreground">Rp {card.balance.toLocaleString("id-ID")}</td>
+                            <td className="px-4 py-4">
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                                  card.status === "active"
+                                    ? "bg-emerald-100 text-emerald-900"
+                                    : "bg-slate-100 text-slate-900"
+                                }`}
+                              >
+                                {card.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-muted-foreground">
+                              {card.user?.name ?? card.user?.email ?? "-"}
+                            </td>
+                            <td className="px-4 py-4 text-muted-foreground">
+                              {card.lastBus ? `${card.lastBus.busCode} (${card.lastBus.plateNumber})` : "-"}
+                            </td>
+                            <td className="px-4 py-4">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteCard(card.rfidTag)}
+                                disabled={deleteCardMutation.isPending}
+                              >
+                                <Trash2 className="mr-2" /> Hapus
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* PAGINATION CONTROLS */}
+                  {totalItems > 0 && (
+                    <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/50 pt-5">
+                      <div className="text-xs text-muted-foreground">
+                        Menampilkan <span className="font-semibold text-foreground">{totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> -{" "}
+                        <span className="font-semibold text-foreground">
+                          {Math.min(currentPage * itemsPerPage, totalItems)}
+                        </span>{" "}
+                        dari <span className="font-semibold text-foreground">{totalItems}</span> kartu RFID
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1 || totalPages <= 1}
+                        >
+                          <ChevronLeft className="mr-1 h-3.5 w-3.5" /> Sebelumnya
+                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                          {totalPages > 0 ? (
+                            Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                              if (
+                                p === 1 ||
+                                p === totalPages ||
+                                (p >= currentPage - 2 && p <= currentPage + 2)
+                              ) {
+                                return (
+                                  <Button
+                                    key={p}
+                                    variant={currentPage === p ? "default" : "outline"}
+                                    size="sm"
+                                    className="h-8 w-8 text-xs rounded-lg font-medium p-0"
+                                    onClick={() => setCurrentPage(p)}
+                                  >
+                                    {p}
+                                  </Button>
+                                );
+                              }
+                              if (p === currentPage - 3 || p === currentPage + 3) {
+                                return (
+                                  <span key={p} className="text-muted-foreground px-1 text-xs select-none">
+                                    ...
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })
+                          ) : (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="h-8 w-8 text-xs rounded-lg font-medium p-0"
+                              disabled
+                            >
+                              1
+                            </Button>
+                          )}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages || totalPages <= 1}
+                        >
+                          Berikutnya <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

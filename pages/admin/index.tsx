@@ -21,13 +21,13 @@ const dashboardSoftCardClassName =
   "rounded-3xl border border-border/40 bg-background/80 shadow-[0_12px_34px_rgba(15,23,42,0.06)] backdrop-blur-sm transform-gpu transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border/55 hover:bg-background/90 hover:shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
 
 const chartPanelClassName =
-  "rounded-3xl border border-white/15 bg-[#17355a] text-[#f4f1e8] shadow-[0_12px_34px_rgba(15,23,42,0.06)] transform-gpu transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#214d79] hover:shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
+  "w-full min-w-0 overflow-hidden rounded-3xl border border-white/15 bg-[#17355a] text-[#f4f1e8] shadow-[0_12px_34px_rgba(15,23,42,0.06)] transform-gpu transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#214d79] hover:shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
 
 const chartPanelStaticClassName =
-  "rounded-3xl border border-white/15 bg-[#17355a] text-[#f4f1e8] shadow-[0_12px_34px_rgba(15,23,42,0.06)] transform-gpu";
+  "w-full min-w-0 overflow-hidden rounded-3xl border border-white/15 bg-[#17355a] text-[#f4f1e8] shadow-[0_12px_34px_rgba(15,23,42,0.06)] transform-gpu";
 
 const profitSummarySectionClassName =
-  "rounded-3xl border border-white/15 bg-[#17355a] shadow-[0_18px_50px_rgba(36,91,176,0.12)] transform-gpu hover:-translate-y-0.5 hover:shadow-[0_22px_64px_rgba(36,91,176,0.14)] transition-all duration-200 ease-out";
+  "w-full min-w-0 overflow-hidden rounded-3xl border border-white/15 bg-[#17355a] shadow-[0_18px_50px_rgba(36,91,176,0.12)] transform-gpu hover:-translate-y-0.5 hover:shadow-[0_22px_64px_rgba(36,91,176,0.14)] transition-all duration-200 ease-out";
 
 
 

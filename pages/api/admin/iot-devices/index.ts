@@ -9,6 +9,9 @@ import { z } from "zod";
 
 const listDevicesQuerySchema = z.object({
   search: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).optional(),
+  status: z.enum(["ALL", "ACTIVE", "INACTIVE", "RETIRED"]).optional().default("ALL"),
 });
 
 const createDeviceSchema = z.object({
@@ -62,6 +65,9 @@ export default async function handler(
   if (req.method === "GET") {
     const parseQuery = listDevicesQuerySchema.safeParse({
       search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
+      status: req.query.status,
     });
 
     if (!parseQuery.success) {
@@ -72,43 +78,66 @@ export default async function handler(
     }
 
     const search = parseQuery.data.search?.trim();
+    const page = parseQuery.data.page;
+    const limit = parseQuery.data.limit;
+    const status = parseQuery.data.status;
 
-    const [devices, buses] = await prisma.$transaction([
+    const whereClause: Prisma.IotDeviceWhereInput = {
+      AND: [],
+    };
+
+    if (search) {
+      whereClause.AND = [
+        ...(whereClause.AND as Prisma.IotDeviceWhereInput[]),
+        {
+          OR: [
+            {
+              serialNumber: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              firmwareVer: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              currentBus: {
+                busCode: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            },
+            {
+              currentBus: {
+                plateNumber: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            },
+          ],
+        },
+      ];
+    }
+
+    if (status && status !== "ALL") {
+      whereClause.AND = [
+        ...(whereClause.AND as Prisma.IotDeviceWhereInput[]),
+        {
+          status: status as DeviceStatus,
+        },
+      ];
+    }
+
+    const finalWhere = (whereClause.AND as any[]).length > 0 ? whereClause : undefined;
+
+    const [devices, total, buses] = await prisma.$transaction([
       prisma.iotDevice.findMany({
-        where: search
-          ? {
-              OR: [
-                {
-                  serialNumber: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  firmwareVer: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  currentBus: {
-                    busCode: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-                {
-                  currentBus: {
-                    plateNumber: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-              ],
-            }
-          : undefined,
+        where: finalWhere,
         include: {
           currentBus: {
             select: {
@@ -137,6 +166,11 @@ export default async function handler(
         orderBy: {
           createdAt: "desc",
         },
+        skip: page && limit ? (page - 1) * limit : undefined,
+        take: limit || undefined,
+      }),
+      prisma.iotDevice.count({
+        where: finalWhere,
       }),
       prisma.bus.findMany({
         select: {
@@ -151,15 +185,47 @@ export default async function handler(
       }),
     ]);
 
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    const [totalDevices, activeDevices, assignedDevices, onlineDevices] = await Promise.all([
+      prisma.iotDevice.count(),
+      prisma.iotDevice.count({
+        where: {
+          status: "ACTIVE",
+        },
+      }),
+      prisma.iotDevice.count({
+        where: {
+          currentBusId: { not: null },
+        },
+      }),
+      prisma.iotDevice.count({
+        where: {
+          lastSeenAt: {
+            gte: fiveMinutesAgo,
+          },
+        },
+      }),
+    ]);
+
     return ApiResponses.success(
       res,
       {
         devices,
         buses,
+        total,
+        stats: {
+          totalDevices,
+          activeDevices,
+          assignedDevices,
+          onlineDevices,
+        },
       },
       {
         meta: {
-          total: devices.length,
+          total,
+          page: page ?? 1,
+          limit: limit ?? total,
         },
       },
     );

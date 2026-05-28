@@ -105,7 +105,7 @@ export default function UserHistoryPage() {
                 <div className="py-6 text-center text-sm text-muted-foreground">Belum ada riwayat transaksi.</div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
+                  <table className="min-w-[600px] w-full border-separate border-spacing-y-3 text-left text-sm">
                     <thead>
                       <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                         <th className="px-4 py-2">Info Tap</th>

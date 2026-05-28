@@ -27,6 +27,8 @@ import {
 } from "@/lib/hooks/use-admin-buses";
 import {
   BusFront,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Edit3,
   Gauge,
@@ -35,7 +37,8 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { AdminPageHeader } from "@/components/admin/page-header";
 
@@ -58,6 +61,9 @@ const defaultFormValues: BusFormValues = {
 };
 
 export default function AdminBusPage() {
+  const router = useRouter();
+
+  // Search and Filter states
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "ALL" | "ACTIVE" | "INACTIVE"
@@ -67,7 +73,38 @@ export default function AdminBusPage() {
   const [formValues, setFormValues] =
     useState<BusFormValues>(defaultFormValues);
 
-  const busesQuery = useAdminBuses(search);
+  // Pagination states (URL Query Param-Based)
+  const queryPage = router.query.page;
+  const currentPage = router.isReady && typeof queryPage === "string" ? parseInt(queryPage, 10) || 1 : 1;
+  const itemsPerPage = 10;
+
+  const setCurrentPage = (value: number | ((prev: number) => number)) => {
+    const nextPage = typeof value === "function" ? value(currentPage) : value;
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: nextPage.toString() },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  // Synchronize URL to always have ?page=1 on initial load if missing
+  useEffect(() => {
+    if (router.isReady && !router.query.page) {
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, page: "1" },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router.isReady, router.query.page]);
+
+  const busesQuery = useAdminBuses(search, currentPage, itemsPerPage, statusFilter);
   const createBusMutation = useCreateBusMutation();
   const updateBusMutation = useUpdateBusMutation();
   const deleteBusMutation = useDeleteBusMutation();
@@ -81,37 +118,21 @@ export default function AdminBusPage() {
     [busesQuery.data],
   );
 
-  const filteredBuses = useMemo(
-    () =>
-      busList.filter((busItem) => {
-        const query = search.trim().toLowerCase();
-        const matchesSearch =
-          !query ||
-          busItem.busCode.toLowerCase().includes(query) ||
-          busItem.plateNumber.toLowerCase().includes(query) ||
-          (busItem.route?.routeName.toLowerCase().includes(query) ?? false);
+  // Since filtering and pagination is performed 100% server-side:
+  const filteredBuses = busList;
 
-        const matchesStatus =
-          statusFilter === "ALL" ||
-          (statusFilter === "ACTIVE" && busItem.isActive) ||
-          (statusFilter === "INACTIVE" && !busItem.isActive);
-
-        return matchesSearch && matchesStatus;
-      }),
-    [busList, search, statusFilter],
-  );
-
-  const activeCount = busList.filter((item) => item.isActive).length;
-  const totalPassengers = busList.reduce(
-    (sum, busItem) => sum + (busItem.passengerCount ?? 0),
-    0,
-  );
-  const inactiveCount = busList.length - activeCount;
+  // Aggregate stats from the server
+  const totalItems = busesQuery.data?.total ?? 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalBuses = busesQuery.data?.stats?.totalBuses ?? 0;
+  const activeCount = busesQuery.data?.stats?.activeCount ?? 0;
+  const inactiveCount = busesQuery.data?.stats?.inactiveCount ?? 0;
+  const totalPassengers = busesQuery.data?.stats?.totalPassengers ?? 0;
 
   const summaryCards = [
     {
       label: "Total Armada",
-      value: busList.length,
+      value: totalBuses,
       description: "Seluruh armada yang terdaftar di sistem.",
       icon: BusFront,
       iconClassName: "bg-sky-100 text-sky-700 ring-1 ring-sky-200",
@@ -281,27 +302,33 @@ export default function AdminBusPage() {
           })}
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <Card className="min-w-0">
+          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between flex-wrap">
             <div>
               <CardTitle>Daftar Bus</CardTitle>
               <CardDescription>
                 Cari kode bus, nomor polisi, atau route.
               </CardDescription>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap w-full sm:w-auto">
               <SearchInput
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Cari bus"
-                className="w-full sm:w-72"
+                className="w-full sm:w-72 shrink-0"
               />
               <div className="flex items-center gap-2 rounded-full border border-border bg-background p-1 text-sm shadow-sm">
                 {(["ALL", "ACTIVE", "INACTIVE"] as const).map((option) => (
                   <button
                     key={option}
                     type="button"
-                    onClick={() => setStatusFilter(option)}
+                    onClick={() => {
+                      setStatusFilter(option);
+                      setCurrentPage(1);
+                    }}
                     className={`rounded-full px-3 py-1 transition ${
                       statusFilter === option
                         ? "bg-primary text-primary-foreground"
@@ -318,8 +345,9 @@ export default function AdminBusPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-y-3 text-left">
+          <CardContent>
+            <div className="w-full overflow-x-auto">
+              <table className="w-full border-separate border-spacing-y-3 text-left whitespace-nowrap">
               <thead>
                 <tr className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
                   <th className="px-4 py-3">ID</th>
@@ -396,10 +424,22 @@ export default function AdminBusPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredBuses.length === 0 ? (
+                 {busesQuery.isLoading ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
+                      className="px-4 py-8 text-center text-sm text-muted-foreground"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        Memuat data bus...
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredBuses.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
                       className="px-4 py-8 text-center text-sm text-muted-foreground"
                     >
                       Tidak ada bus yang sesuai dengan filter.
@@ -408,6 +448,80 @@ export default function AdminBusPage() {
                 ) : null}
               </tbody>
             </table>
+          </div>
+
+          {/* PAGINATION CONTROLS */}
+            {totalItems > 0 && (
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/50 pt-5">
+                <div className="text-xs text-muted-foreground">
+                  Menampilkan <span className="font-semibold text-foreground">{totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> -{" "}
+                  <span className="font-semibold text-foreground">
+                    {Math.min(currentPage * itemsPerPage, totalItems)}
+                  </span>{" "}
+                  dari <span className="font-semibold text-foreground">{totalItems}</span> armada bus
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1 || totalPages <= 1}
+                  >
+                    <ChevronLeft className="mr-1 h-3.5 w-3.5" /> Sebelumnya
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {totalPages > 0 ? (
+                      Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                        if (
+                          p === 1 ||
+                          p === totalPages ||
+                          (p >= currentPage - 2 && p <= currentPage + 2)
+                        ) {
+                          return (
+                            <Button
+                              key={p}
+                              variant={currentPage === p ? "default" : "outline"}
+                              size="sm"
+                              className="h-8 w-8 text-xs rounded-lg font-medium p-0"
+                              onClick={() => setCurrentPage(p)}
+                            >
+                              {p}
+                            </Button>
+                          );
+                        }
+                        if (p === currentPage - 3 || p === currentPage + 3) {
+                          return (
+                            <span key={p} className="text-muted-foreground px-1 text-xs select-none">
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      })
+                    ) : (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8 w-8 text-xs rounded-lg font-medium p-0"
+                        disabled
+                      >
+                        1
+                      </Button>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || totalPages <= 1}
+                  >
+                    Berikutnya <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -49,7 +49,7 @@ export function AdminPageHeader({
         </div>
 
         {actions ? (
-          <div className="relative z-10 flex flex-nowrap items-center gap-3 whitespace-nowrap overflow-x-auto">
+          <div className="relative z-10 flex flex-wrap items-center gap-3">
             {actions}
           </div>
         ) : null}
