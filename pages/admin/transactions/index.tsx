@@ -239,7 +239,7 @@ export default function AdminTransactionsPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
+                    <table className="min-w-[900px] w-full border-separate border-spacing-y-3 text-left text-sm">
                       <thead>
                         <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                           <th className="px-4 py-2">Tanggal Terakhir</th>

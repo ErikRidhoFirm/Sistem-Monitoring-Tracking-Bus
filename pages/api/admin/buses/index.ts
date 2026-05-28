@@ -7,6 +7,9 @@ import { z } from "zod";
 
 const listBusesQuerySchema = z.object({
   search: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).optional(),
+  status: z.enum(["ALL", "ACTIVE", "INACTIVE"]).optional().default("ALL"),
 });
 
 const createBusSchema = z.object({
@@ -62,6 +65,9 @@ export default async function handler(
   if (req.method === "GET") {
     const parseQuery = listBusesQuerySchema.safeParse({
       search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
+      status: req.query.status,
     });
 
     if (!parseQuery.success) {
@@ -72,35 +78,58 @@ export default async function handler(
     }
 
     const search = parseQuery.data.search?.trim();
+    const page = parseQuery.data.page;
+    const limit = parseQuery.data.limit;
+    const status = parseQuery.data.status;
 
-    const [buses, routes] = await prisma.$transaction([
+    const whereClause: Prisma.BusWhereInput = {
+      AND: [],
+    };
+
+    if (search) {
+      whereClause.AND = [
+        ...(whereClause.AND as Prisma.BusWhereInput[]),
+        {
+          OR: [
+            {
+              busCode: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              plateNumber: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              route: {
+                routeName: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            },
+          ],
+        },
+      ];
+    }
+
+    if (status && status !== "ALL") {
+      whereClause.AND = [
+        ...(whereClause.AND as Prisma.BusWhereInput[]),
+        {
+          isActive: status === "ACTIVE",
+        },
+      ];
+    }
+
+    const finalWhere = (whereClause.AND as any[]).length > 0 ? whereClause : undefined;
+
+    const [buses, total, routes] = await prisma.$transaction([
       prisma.bus.findMany({
-        where: search
-          ? {
-              OR: [
-                {
-                  busCode: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  plateNumber: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  route: {
-                    routeName: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-              ],
-            }
-          : undefined,
+        where: finalWhere,
         include: {
           route: {
             select: {
@@ -112,6 +141,11 @@ export default async function handler(
         orderBy: {
           busCode: "asc",
         },
+        skip: page && limit ? (page - 1) * limit : undefined,
+        take: limit || undefined,
+      }),
+      prisma.bus.count({
+        where: finalWhere,
       }),
       prisma.route.findMany({
         select: {
@@ -124,15 +158,38 @@ export default async function handler(
       }),
     ]);
 
+    // Calculate aggregated overall database stats for summary cards
+    const [totalBuses, activeCount, passengerAggregation] = await Promise.all([
+      prisma.bus.count(),
+      prisma.bus.count({ where: { isActive: true } }),
+      prisma.bus.aggregate({
+        _sum: {
+          passengerCount: true,
+        },
+      }),
+    ]);
+
+    const inactiveCount = totalBuses - activeCount;
+    const totalPassengers = passengerAggregation._sum.passengerCount ?? 0;
+
     return ApiResponses.success(
       res,
       {
         buses,
         routes,
+        total,
+        stats: {
+          totalBuses,
+          activeCount,
+          inactiveCount,
+          totalPassengers,
+        },
       },
       {
         meta: {
-          total: buses.length,
+          total,
+          page: page ?? 1,
+          limit: limit ?? totalBuses,
         },
       },
     );

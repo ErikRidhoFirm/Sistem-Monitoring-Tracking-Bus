@@ -7,6 +7,8 @@ import { z } from "zod";
 
 const listCardsQuerySchema = z.object({
   search: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).optional(),
 });
 
 const createCardSchema = z.object({
@@ -62,6 +64,8 @@ export default async function handler(
   if (req.method === "GET") {
     const parseQuery = listCardsQuerySchema.safeParse({
       search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
     });
 
     if (!parseQuery.success) {
@@ -72,53 +76,57 @@ export default async function handler(
     }
 
     const search = parseQuery.data.search?.trim();
+    const page = parseQuery.data.page;
+    const limit = parseQuery.data.limit;
 
-    const [cards, users, buses] = await prisma.$transaction([
+    const whereClause: Prisma.CardWhereInput = search
+      ? {
+          OR: [
+            {
+              rfidTag: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              user: {
+                name: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            },
+            {
+              user: {
+                email: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            },
+            {
+              lastBus: {
+                busCode: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            },
+            {
+              lastBus: {
+                plateNumber: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            },
+          ],
+        }
+      : {};
+
+    const [cards, total, users, buses] = await prisma.$transaction([
       prisma.card.findMany({
-        where: search
-          ? {
-              OR: [
-                {
-                  rfidTag: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  user: {
-                    name: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-                {
-                  user: {
-                    email: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-                {
-                  lastBus: {
-                    busCode: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-                {
-                  lastBus: {
-                    plateNumber: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-              ],
-            }
-          : undefined,
+        where: whereClause,
         include: {
           user: {
             select: {
@@ -138,6 +146,11 @@ export default async function handler(
         orderBy: {
           rfidTag: "asc",
         },
+        skip: page && limit ? (page - 1) * limit : undefined,
+        take: limit || undefined,
+      }),
+      prisma.card.count({
+        where: whereClause,
       }),
       prisma.user.findMany({
         select: {
@@ -167,10 +180,13 @@ export default async function handler(
         cards,
         users,
         buses,
+        total,
       },
       {
         meta: {
-          total: cards.length,
+          total,
+          page: page ?? 1,
+          limit: limit ?? total,
         },
       },
     );

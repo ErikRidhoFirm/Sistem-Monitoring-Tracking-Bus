@@ -29,6 +29,7 @@ type CardsListPayload = {
   cards: CardItem[];
   users: CardOptionUser[];
   buses: CardOptionBus[];
+  total?: number;
 };
 
 type CardPayload = {
@@ -44,16 +45,23 @@ type UpdateCardPayload = Omit<CardPayload, "rfidTag">;
 
 const cardsKeys = {
   all: ["admin", "cards"] as const,
-  list: (search: string) => ["admin", "cards", "list", search] as const,
+  list: (search: string, page?: number, limit?: number) =>
+    ["admin", "cards", "list", { search, page, limit }] as const,
 };
 
-export function useAdminCards(search: string) {
+export function useAdminCards(search: string, page?: number, limit?: number) {
   return useQuery({
-    queryKey: cardsKeys.list(search),
+    queryKey: cardsKeys.list(search, page, limit),
     queryFn: () => {
       const params = new URLSearchParams();
       if (search.trim()) {
         params.set("search", search.trim());
+      }
+      if (page !== undefined) {
+        params.set("page", page.toString());
+      }
+      if (limit !== undefined) {
+        params.set("limit", limit.toString());
       }
 
       const query = params.toString();

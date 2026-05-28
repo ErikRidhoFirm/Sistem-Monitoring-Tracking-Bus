@@ -221,7 +221,7 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
+                <table className="min-w-[600px] w-full border-separate border-spacing-y-3 text-left text-sm">
                   <thead>
                     <tr className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                       <th className="px-4 py-2">Info Tap</th>

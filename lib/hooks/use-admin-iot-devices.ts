@@ -40,6 +40,13 @@ export type IotDeviceItem = {
 type IotDevicesPayload = {
   devices: IotDeviceItem[];
   buses: BusOption[];
+  total?: number;
+  stats?: {
+    totalDevices: number;
+    activeDevices: number;
+    assignedDevices: number;
+    onlineDevices: number;
+  };
 };
 
 type IotDeviceCreatePayload = {
@@ -60,16 +67,31 @@ type IotDeviceUpdatePayload = {
 
 const iotDeviceKeys = {
   all: ["admin", "iot-devices"] as const,
-  list: (search: string) => ["admin", "iot-devices", "list", search] as const,
+  list: (search: string, page?: number, limit?: number, status?: string) =>
+    ["admin", "iot-devices", "list", { search, page, limit, status }] as const,
 };
 
-export function useAdminIotDevices(search: string) {
+export function useAdminIotDevices(
+  search: string,
+  page?: number,
+  limit?: number,
+  status?: string,
+) {
   return useQuery({
-    queryKey: iotDeviceKeys.list(search),
+    queryKey: iotDeviceKeys.list(search, page, limit, status),
     queryFn: () => {
       const params = new URLSearchParams();
       if (search.trim()) {
         params.set("search", search.trim());
+      }
+      if (page !== undefined) {
+        params.set("page", page.toString());
+      }
+      if (limit !== undefined) {
+        params.set("limit", limit.toString());
+      }
+      if (status !== undefined && status !== "ALL") {
+        params.set("status", status);
       }
 
       const query = params.toString();

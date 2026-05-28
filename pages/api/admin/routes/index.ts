@@ -7,6 +7,8 @@ import { z } from "zod";
 
 const listRoutesQuerySchema = z.object({
   search: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).optional(),
 });
 
 const jsonValueSchema = z.union([
@@ -63,6 +65,8 @@ export default async function handler(
   if (req.method === "GET") {
     const parseQuery = listRoutesQuerySchema.safeParse({
       search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
     });
 
     if (!parseQuery.success) {
@@ -73,17 +77,21 @@ export default async function handler(
     }
 
     const search = parseQuery.data.search?.trim();
+    const page = parseQuery.data.page;
+    const limit = parseQuery.data.limit;
 
-    const [routes, stations] = await prisma.$transaction([
+    const whereClause: Prisma.RouteWhereInput = search
+      ? {
+          routeName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        }
+      : {};
+
+    const [routes, total, stations] = await prisma.$transaction([
       prisma.route.findMany({
-        where: search
-          ? {
-              routeName: {
-                contains: search,
-                mode: "insensitive",
-              },
-            }
-          : undefined,
+        where: whereClause,
         include: {
           stations: {
             include: {
@@ -102,6 +110,11 @@ export default async function handler(
         orderBy: {
           routeName: "asc",
         },
+        skip: page && limit ? (page - 1) * limit : undefined,
+        take: limit || undefined,
+      }),
+      prisma.route.count({
+        where: whereClause,
       }),
       prisma.station.findMany({
         select: {
@@ -119,10 +132,13 @@ export default async function handler(
       {
         routes,
         stations,
+        total,
       },
       {
         meta: {
-          total: routes.length,
+          total,
+          page: page ?? 1,
+          limit: limit ?? total,
         },
       },
     );

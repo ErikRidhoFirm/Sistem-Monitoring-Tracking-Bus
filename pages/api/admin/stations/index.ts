@@ -6,6 +6,8 @@ import { z } from "zod";
 
 const listStationsQuerySchema = z.object({
   search: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).optional(),
 });
 
 const createStationSchema = z.object({
@@ -60,6 +62,8 @@ export default async function handler(
   if (req.method === "GET") {
     const parseQuery = listStationsQuerySchema.safeParse({
       search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
     });
 
     if (!parseQuery.success) {
@@ -70,28 +74,43 @@ export default async function handler(
     }
 
     const search = parseQuery.data.search?.trim();
-    const stations = await prisma.station.findMany({
-      where: search
-        ? {
-            name: {
-              contains: search,
-              mode: "insensitive",
-            },
-          }
-        : undefined,
-      orderBy: {
-        name: "asc",
-      },
-    });
+    const page = parseQuery.data.page;
+    const limit = parseQuery.data.limit;
+
+    const whereClause = search
+      ? {
+          name: {
+            contains: search,
+            mode: "insensitive" as const,
+          },
+        }
+      : undefined;
+
+    const [stations, total] = await prisma.$transaction([
+      prisma.station.findMany({
+        where: whereClause,
+        orderBy: {
+          name: "asc",
+        },
+        skip: page && limit ? (page - 1) * limit : undefined,
+        take: limit || undefined,
+      }),
+      prisma.station.count({
+        where: whereClause,
+      }),
+    ]);
 
     return ApiResponses.success(
       res,
       {
         stations,
+        total,
       },
       {
         meta: {
-          total: stations.length,
+          total,
+          page: page ?? 1,
+          limit: limit ?? total,
         },
       },
     );

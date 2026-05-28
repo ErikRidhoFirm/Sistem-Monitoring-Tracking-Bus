@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { z } from "zod";
+import { useRouter } from "next/router";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { AdminLayout } from "@/components/admin/layout";
 import { AdminPageHeader } from "@/components/admin/page-header";
@@ -45,11 +47,42 @@ const defaults: RouteFormValues = {
 };
 
 export default function AdminRoutesPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [editingRoute, setEditingRoute] = useState<RouteItem | null>(null);
   const [deletingRouteId, setDeletingRouteId] = useState<string | null>(null);
 
-  const routesQuery = useAdminRoutes(search);
+  // Pagination states
+  const queryPage = router.query.page;
+  const currentPage = router.isReady && typeof queryPage === "string" ? parseInt(queryPage, 10) || 1 : 1;
+  const itemsPerPage = 10;
+
+  const setCurrentPage = (value: number | ((prev: number) => number)) => {
+    const nextPage = typeof value === "function" ? value(currentPage) : value;
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: nextPage.toString() },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  useEffect(() => {
+    if (router.isReady && !router.query.page) {
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, page: "1" },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router.isReady, router.query.page]);
+
+  const routesQuery = useAdminRoutes(search, currentPage, itemsPerPage);
   const createRouteMutation = useCreateRouteMutation();
   const updateRouteMutation = useUpdateRouteMutation();
   const deleteRouteMutation = useDeleteRouteMutation();
@@ -71,6 +104,9 @@ export default function AdminRoutesPage() {
     () => routesQuery.data?.stations ?? [],
     [routesQuery.data],
   );
+
+  const totalItems = routesQuery.data?.total ?? 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const selectedStationIds =
     useWatch({
@@ -254,7 +290,10 @@ export default function AdminRoutesPage() {
               <Input
                 id="searchRoute"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Cari berdasarkan nama rute"
               />
             </div>
@@ -272,8 +311,9 @@ export default function AdminRoutesPage() {
             ) : null}
 
             {!routesQuery.isLoading && !routesQuery.isError ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <>
+                <div className="w-full overflow-x-auto">
+                  <table className="min-w-[600px] w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
                       <th className="px-2 py-2 font-medium">Nama Rute</th>
@@ -323,6 +363,80 @@ export default function AdminRoutesPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* PAGINATION CONTROLS */}
+                {totalItems > 0 && (
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/50 pt-5">
+                    <div className="text-xs text-muted-foreground">
+                      Menampilkan <span className="font-semibold text-foreground">{totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> -{" "}
+                      <span className="font-semibold text-foreground">
+                        {Math.min(currentPage * itemsPerPage, totalItems)}
+                      </span>{" "}
+                      dari <span className="font-semibold text-foreground">{totalItems}</span> rute
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1 || totalPages <= 1}
+                      >
+                        <ChevronLeft className="mr-1 h-3.5 w-3.5" /> Sebelumnya
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {totalPages > 0 ? (
+                          Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                            if (
+                              p === 1 ||
+                              p === totalPages ||
+                              (p >= currentPage - 2 && p <= currentPage + 2)
+                            ) {
+                              return (
+                                <Button
+                                  key={p}
+                                  variant={currentPage === p ? "default" : "outline"}
+                                  size="sm"
+                                  className="h-8 w-8 text-xs rounded-lg font-medium p-0"
+                                  onClick={() => setCurrentPage(p)}
+                                >
+                                  {p}
+                                </Button>
+                              );
+                            }
+                            if (p === currentPage - 3 || p === currentPage + 3) {
+                              return (
+                                <span key={p} className="text-muted-foreground px-1 text-xs select-none">
+                                  ...
+                                </span>
+                              );
+                            }
+                            return null;
+                          })
+                        ) : (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="h-8 w-8 text-xs rounded-lg font-medium p-0"
+                            disabled
+                          >
+                            1
+                          </Button>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages || totalPages <= 1}
+                      >
+                        Berikutnya <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : null}
           </CardContent>
         </Card>

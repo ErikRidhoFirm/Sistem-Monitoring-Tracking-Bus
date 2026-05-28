@@ -22,6 +22,13 @@ export type BusItem = {
 type BusesListPayload = {
   buses: BusItem[];
   routes: RouteOption[];
+  total?: number;
+  stats?: {
+    totalBuses: number;
+    activeCount: number;
+    inactiveCount: number;
+    totalPassengers: number;
+  };
 };
 
 type BusUpsertPayload = {
@@ -35,16 +42,31 @@ type BusUpsertPayload = {
 
 const busesKeys = {
   all: ["admin", "buses"] as const,
-  list: (search: string) => ["admin", "buses", "list", search] as const,
+  list: (search: string, page?: number, limit?: number, status?: string) =>
+    ["admin", "buses", "list", { search, page, limit, status }] as const,
 };
 
-export function useAdminBuses(search: string) {
+export function useAdminBuses(
+  search: string,
+  page?: number,
+  limit?: number,
+  status?: string,
+) {
   return useQuery({
-    queryKey: busesKeys.list(search),
+    queryKey: busesKeys.list(search, page, limit, status),
     queryFn: () => {
       const params = new URLSearchParams();
       if (search.trim()) {
         params.set("search", search.trim());
+      }
+      if (page !== undefined) {
+        params.set("page", page.toString());
+      }
+      if (limit !== undefined) {
+        params.set("limit", limit.toString());
+      }
+      if (status !== undefined && status !== "ALL") {
+        params.set("status", status);
       }
 
       const query = params.toString();
