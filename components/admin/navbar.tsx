@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export function AdminNavbar() {
   return (
-    <div className="sticky top-0 z-50 border-b border-white/10 bg-[linear-gradient(135deg,#24384d_0%,#345877_48%,#4b77ad_100%)] py-3 text-[#f4f1e8] backdrop-blur-xl shadow-[0_8px_30px_rgba(15,23,42,0.18)]">
+    <div className="sticky top-0 z-50 border-b border-white/15 bg-[linear-gradient(135deg,#17355a_0%,#214d79_52%,#5b8de3_100%)] py-3 text-[#f4f1e8] backdrop-blur-xl shadow-[0_8px_30px_rgba(15,23,42,0.18)]">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-8">
         {/* Branding */}
         <div

@@ -76,7 +76,7 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(135deg,#24384d_0%,#345877_48%,#4b77ad_100%)] text-sidebar-foreground shadow-[12px_0_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-in-out",
+        "fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-white/15 bg-[linear-gradient(135deg,#17355a_0%,#214d79_52%,#5b8de3_100%)] text-sidebar-foreground shadow-[12px_0_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-in-out",
         className,
       )}
       style={{ width: `${width}px` }}
