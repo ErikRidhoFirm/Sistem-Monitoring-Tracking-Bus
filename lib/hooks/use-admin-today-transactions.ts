@@ -48,7 +48,8 @@ export function useAdminTodayTransactionsByBus(limit = 5, busId: string | "ALL" 
     },
     staleTime: 0,
     refetchOnMount: "always",
-    refetchInterval: 60 * 1000,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
     retry: 2,
   });
 }

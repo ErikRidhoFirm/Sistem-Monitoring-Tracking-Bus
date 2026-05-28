@@ -33,7 +33,8 @@ export function useAdminProfitSummary(busId: string | "ALL") {
     // Always treat data as stale so switching bus filter triggers a fresh fetch.
     staleTime: 0,
     refetchOnMount: "always",
-    refetchInterval: 60 * 1000,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
     retry: 2,
   });
 }

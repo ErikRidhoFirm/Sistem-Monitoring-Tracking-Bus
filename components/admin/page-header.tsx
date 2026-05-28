@@ -48,7 +48,11 @@ export function AdminPageHeader({
           </div>
         </div>
 
-        {actions ? <div className="relative z-10 flex flex-wrap items-center gap-3">{actions}</div> : null}
+        {actions ? (
+          <div className="relative z-10 flex flex-nowrap items-center gap-3 whitespace-nowrap overflow-x-auto">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </section>
   );

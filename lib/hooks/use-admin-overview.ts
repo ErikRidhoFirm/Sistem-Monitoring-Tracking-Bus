@@ -38,8 +38,9 @@ export function useAdminOverviewByBus(busId: string | "ALL") {
     },
     staleTime: 0,
     refetchOnMount: "always",
-    refetchInterval: 60 * 1000, // Auto-refetch every 60 seconds
-    enabled: true, // Ensure query starts immediately
-    retry: 2, // Retry on failure
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    enabled: true,
+    retry: 2,
   });
 }
