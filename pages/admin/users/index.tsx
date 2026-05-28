@@ -194,7 +194,7 @@ export default function UserPage() {
             return (
               <div
                 key={card.label}
-                className="overflow-hidden rounded-3xl border border-border/70 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+                className="overflow-hidden rounded-3xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:bg-transparent hover:shadow-[0_20px_54px_rgba(15,23,42,0.1)]"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
@@ -221,16 +221,16 @@ export default function UserPage() {
         </div>
 
         {/* TABLE SECTION */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="overflow-hidden rounded-3xl border border-border/70 bg-card/80 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:bg-transparent hover:shadow-[0_20px_54px_rgba(15,23,42,0.1)]">
+          <div className="p-5 border-b border-border/40 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Daftar Pengguna</h2>
-              <p className="text-sm text-gray-500">Cari berdasarkan nama atau email.</p>
+              <h2 className="text-lg font-bold text-foreground">Daftar Pengguna</h2>
+              <p className="text-sm text-muted-foreground">Cari berdasarkan nama atau email.</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
               <div className="relative w-full sm:w-64">
-                <svg className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <svg className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 <input 
                   type="text" 
                   placeholder="Cari user..." 
@@ -239,11 +239,11 @@ export default function UserPage() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                  className="w-full pl-9 pr-4 py-2 bg-background/50 border border-border rounded-full text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
                 />
               </div>
 
-              <div className="flex bg-gray-100 rounded-full p-1 border border-gray-200">
+              <div className="flex bg-muted/60 rounded-full p-1 border border-border">
                 {(["Semua", "ADMIN", "USER"] as const).map((tab) => (
                   <button
                     key={tab}
@@ -254,7 +254,7 @@ export default function UserPage() {
                     className={`px-4 py-1.5 text-xs font-semibold rounded-full transition ${
                       filterRole === tab 
                         ? "bg-blue-600 text-white shadow" 
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                   >
                     {tab}
