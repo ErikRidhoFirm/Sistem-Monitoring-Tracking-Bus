@@ -15,19 +15,19 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const dashboardSurfaceClassName =
-  "rounded-3xl border border-border/50 bg-card/80 shadow-[0_14px_42px_rgba(15,23,42,0.06)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-border/60 hover:bg-card/90 hover:shadow-[0_20px_54px_rgba(15,23,42,0.1)]";
+  "rounded-3xl border border-border/50 bg-card/80 shadow-[0_12px_34px_rgba(15,23,42,0.06)] backdrop-blur-sm transform-gpu transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border/60 hover:bg-card/90 hover:shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
 
 const dashboardSoftCardClassName =
-  "rounded-3xl border border-border/40 bg-background/80 shadow-[0_10px_28px_rgba(15,23,42,0.04)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border/55 hover:bg-background/90 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]";
+  "rounded-3xl border border-border/40 bg-background/80 shadow-[0_12px_34px_rgba(15,23,42,0.06)] backdrop-blur-sm transform-gpu transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border/55 hover:bg-background/90 hover:shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
 
 const chartPanelClassName =
-  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] text-[#f4f1e8] shadow-[0_18px_50px_rgba(36,91,176,0.16)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] hover:shadow-[0_22px_56px_rgba(36,91,176,0.2)]";
+  "rounded-3xl border border-white/15 bg-[#17355a] text-[#f4f1e8] shadow-[0_12px_34px_rgba(15,23,42,0.06)] transform-gpu transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#214d79] hover:shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
 
 const chartPanelStaticClassName =
-  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] text-[#f4f1e8] shadow-[0_18px_50px_rgba(36,91,176,0.16)]";
+  "rounded-3xl border border-white/15 bg-[#17355a] text-[#f4f1e8] shadow-[0_12px_34px_rgba(15,23,42,0.06)] transform-gpu";
 
 const profitSummarySectionClassName =
-  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] shadow-[0_18px_50px_rgba(36,91,176,0.16)]";
+  "rounded-3xl border border-white/15 bg-[#17355a] shadow-[0_18px_50px_rgba(36,91,176,0.12)] transform-gpu hover:-translate-y-0.5 hover:shadow-[0_22px_64px_rgba(36,91,176,0.14)] transition-all duration-200 ease-out";
 
 
 
