@@ -82,26 +82,6 @@ export default function UserForm({ onSubmit, editUser, isPending }: Props) {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <div className="relative">
-            <input 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              placeholder="masukkan password" 
-              type={showPassword ? "text" : "password"}
-              className="w-full bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" 
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
-            >
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-
         {editUser && (
           <>
             <div>
