@@ -11,6 +11,12 @@ import { useAdminProfitSummary } from "@/lib/hooks/use-admin-profit-summary";
 import { useAdminTodayTransactionsByBus } from "@/lib/hooks/use-admin-today-transactions";
 import { AdminPageHeader } from "@/components/admin/page-header";
 
+const dashboardSurfaceClassName =
+  "rounded-3xl border border-border/50 bg-card/80 shadow-[0_14px_42px_rgba(15,23,42,0.06)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-transparent hover:bg-transparent hover:shadow-[0_20px_54px_rgba(15,23,42,0.1)]";
+
+const dashboardSoftCardClassName =
+  "rounded-3xl border border-border/40 bg-background/80 shadow-[0_10px_28px_rgba(15,23,42,0.04)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-transparent hover:bg-transparent hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]";
+
 
 
 export default function AdminPage() {
@@ -162,7 +168,7 @@ export default function AdminPage() {
           {metricItems.map((metric) => {
             const Icon = metric.icon;
             const cardContent = (
-              <div className="rounded-3xl border border-border bg-card p-6 shadow-sm transition-colors duration-150 ease-in-out hover:border-primary hover:bg-primary/5">
+              <div className={dashboardSurfaceClassName + " p-6"}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
@@ -191,7 +197,7 @@ export default function AdminPage() {
         </section>
 
         <section>
-          <Card>
+          <Card className={dashboardSurfaceClassName}>
             <CardHeader>
               <CardTitle>Ringkasan Profit</CardTitle>
               <CardDescription>
@@ -204,7 +210,7 @@ export default function AdminPage() {
                   {profitItems.map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-3xl border border-border bg-background p-5 shadow-sm"
+                      className={dashboardSoftCardClassName + " p-5"}
                     >
                       <p className="text-sm font-medium uppercase tracking-[0.24em] text-muted-foreground">
                         {item.label}
@@ -222,7 +228,7 @@ export default function AdminPage() {
         </section>
 
         <section>
-          <Card>
+          <Card className={dashboardSurfaceClassName}>
             <CardHeader>
               <CardTitle>5 Transaksi Terakhir Hari Ini</CardTitle>
               <CardDescription>
@@ -249,7 +255,7 @@ export default function AdminPage() {
                       <Link
                         key={item.id}
                         href={`/admin/rfid/${encodeURIComponent(item.card.rfidTag)}`}
-                        className="group block rounded-3xl border border-border bg-background p-4 transition-colors duration-150 ease-in-out hover:border-primary hover:bg-primary/5"
+                        className={dashboardSoftCardClassName + " group block p-4"}
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>

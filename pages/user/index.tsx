@@ -64,6 +64,12 @@ const formatDateTime = (dateString: string) =>
     timeStyle: "short",
   }).format(new Date(dateString));
 
+const dashboardSurfaceClassName =
+  "rounded-3xl border border-border/50 bg-card/80 shadow-[0_14px_42px_rgba(15,23,42,0.06)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-transparent hover:bg-transparent hover:shadow-[0_20px_54px_rgba(15,23,42,0.1)]";
+
+const dashboardSoftCardClassName =
+  "rounded-xl border border-border/40 bg-background/80 shadow-[0_10px_28px_rgba(15,23,42,0.04)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-transparent hover:bg-transparent hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]";
+
 const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, latestTransactions }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<TravelPeriodKey>("today");
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
@@ -149,7 +155,7 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
           description="Lihat ringkasan perjalanan, saldo kartu RFID, dan riwayat transaksi terbaru dalam satu tampilan yang konsisten." 
         />
 
-        <Card className="border border-border bg-card">
+        <Card className={dashboardSurfaceClassName}>
           <CardHeader>
             <CardTitle>Ringkasan Perjalanan</CardTitle>
             <CardDescription>
@@ -176,7 +182,7 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-border bg-background p-5">
+              <div className={dashboardSoftCardClassName + " p-5"}>
                 <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
                   Total Biaya Perjalanan
                 </p>
@@ -188,7 +194,7 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border bg-background p-5">
+              <div className={dashboardSoftCardClassName + " p-5"}>
                 <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
                   Jumlah Perjalanan
                 </p>
@@ -203,14 +209,14 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
           </CardContent>
         </Card>
 
-        <Card className="border border-border bg-card">
+        <Card className={dashboardSurfaceClassName}>
           <CardHeader>
             <CardTitle>Riwayat Transaksi</CardTitle>
             <CardDescription>Lihat 5 transaksi terakhir dari akun Anda dan buka riwayat lengkap saat diperlukan.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {latestTransactions.length === 0 ? (
-              <div className="rounded-xl border border-border bg-background p-6 text-sm text-muted-foreground">
+              <div className={dashboardSoftCardClassName + " p-6 text-sm text-muted-foreground"}>
                 Belum ada riwayat transaksi.
               </div>
             ) : (
@@ -225,7 +231,7 @@ const UserPage: NextPage<UserPageProps> = ({ userName, cards, travelSummaries, l
                   </thead>
                   <tbody>
                     {latestTransactions.map((tx) => (
-                      <tr key={tx.id} className="rounded-2xl border border-border bg-card shadow-xs transition-colors hover:bg-muted/10">
+                      <tr key={tx.id} className="rounded-2xl border border-border/40 bg-card/80 shadow-[0_8px_22px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border/60 hover:shadow-[0_14px_30px_rgba(15,23,42,0.07)]">
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-1">
                             <span className="inline-flex w-fit rounded-full bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
