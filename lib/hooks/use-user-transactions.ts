@@ -20,17 +20,27 @@ type UserTransactionItem = {
 
 type UserTransactionsListPayload = {
   transactions: UserTransactionItem[];
+  total: number;
 };
 
 const userTransactionKeys = {
   all: ["user", "transactions"] as const,
-  list: (search: string, type: TransactionTypeValue | "ALL") =>
-    ["user", "transactions", "list", search, type] as const,
+  list: (
+    search: string,
+    type: TransactionTypeValue | "ALL",
+    page: number,
+    limit: number
+  ) => ["user", "transactions", "list", search, type, page, limit] as const,
 };
 
-export function useUserTransactions(search: string, type: TransactionTypeValue | "ALL") {
+export function useUserTransactions(
+  search: string,
+  type: TransactionTypeValue | "ALL",
+  page: number,
+  limit = 10
+) {
   return useQuery({
-    queryKey: userTransactionKeys.list(search, type),
+    queryKey: userTransactionKeys.list(search, type, page, limit),
     queryFn: () => {
       const params = new URLSearchParams();
 
@@ -41,6 +51,12 @@ export function useUserTransactions(search: string, type: TransactionTypeValue |
       if (type !== "ALL") {
         params.set("type", type);
       }
+
+      if (page > 1) {
+        params.set("page", page.toString());
+      }
+
+      params.set("limit", limit.toString());
 
       const query = params.toString();
       const url = query ? `/api/user/transactions?${query}` : "/api/user/transactions";

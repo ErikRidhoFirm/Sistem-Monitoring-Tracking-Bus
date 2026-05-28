@@ -8,6 +8,8 @@ import { TransactionTypeValue } from "@/types/transaction-type";
 const transactionsQuerySchema = z.object({
   search: z.string().trim().optional(),
   type: z.nativeEnum(TransactionTypeValue).or(z.literal("ALL")).optional().default("ALL"),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -30,10 +32,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const search = Array.isArray(req.query.search) ? req.query.search[0] : req.query.search;
   const type = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
+  const page = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+  const limitQuery = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
 
   const parseQuery = transactionsQuerySchema.safeParse({
     search,
     type,
+    page,
+    limit: limitQuery,
   });
 
   if (!parseQuery.success) {
@@ -47,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const { search: searchTerm, type: txType } = parseQuery.data;
+  const { search: searchTerm, type: txType, page: currentPage, limit } = parseQuery.data;
 
   const whereClause: any = {
     card: {
@@ -68,29 +74,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ];
   }
 
-  const transactions = await prisma.transaction.findMany({
-    where: whereClause,
-    select: {
-      id: true,
-      type: true,
-      amount: true,
-      createdAt: true,
-      stationName: true,
-      latTap: true,
-      lngTap: true,
-      rfidTag: true,
-      bus: {
-        select: {
-          busCode: true,
-          plateNumber: true,
+  const skip = (currentPage - 1) * limit;
+
+  const [total, transactions] = await prisma.$transaction([
+    prisma.transaction.count({ where: whereClause }),
+    prisma.transaction.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        createdAt: true,
+        stationName: true,
+        latTap: true,
+        lngTap: true,
+        rfidTag: true,
+        bus: {
+          select: {
+            busCode: true,
+            plateNumber: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 50,
-  });
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip,
+      take: limit,
+    }),
+  ]);
 
-  return ApiResponses.success(res, { transactions });
+  return ApiResponses.success(res, { transactions, total });
 }

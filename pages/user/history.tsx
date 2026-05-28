@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { UserLayout } from "@/components/user/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { useUserTransactions } from "@/lib/hooks/use-user-transactions";
 import { TransactionTypeValue } from "@/types/transaction-type";
-import { Calendar, CreditCard, MapPin, Bus } from "lucide-react";
+import { CreditCard, MapPin, Bus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -43,11 +46,46 @@ type UserTransactionItem = {
 };
 
 export default function UserHistoryPage() {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TransactionTypeValue | "ALL">("ALL");
+  const router = useRouter();
+  const queryPage = router.query.page;
+  const currentPage = router.isReady
+    ? typeof queryPage === "string"
+      ? parseInt(queryPage, 10) || 1
+      : Array.isArray(queryPage)
+      ? parseInt(queryPage[0], 10) || 1
+      : 1
+    : 1;
+  const itemsPerPage = 10;
 
-  const { data, isLoading, error } = useUserTransactions(search, typeFilter);
+  useEffect(() => {
+    if (router.isReady && !router.query.page) {
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, page: "1" },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router.isReady, router.query.page]);
+
+  const setCurrentPage = (value: number | ((prev: number) => number)) => {
+    const nextPage = typeof value === "function" ? value(currentPage) : value;
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: nextPage.toString() },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const { data, isLoading, error } = useUserTransactions("", "ALL", currentPage, itemsPerPage);
   const transactions = data?.transactions ?? [];
+  const totalItems = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const totalAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
   const latestTransaction = transactions[0] ?? null;
 
@@ -64,39 +102,8 @@ export default function UserHistoryPage() {
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Daftar Transaksi Anda</CardTitle>
-              <CardDescription>
-                Cari berdasarkan RFID, nama stasiun, nomor bus, atau filter berdasarkan tipe transaksi.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="flex flex-1 items-center gap-3 rounded-full border border-border bg-background px-3 py-2 shadow-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Cari transaksi..."
-                    className="border-0 bg-transparent px-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:outline-none"
-                  />
-                </div>
-                <div className="w-full sm:w-56">
-                  <Label htmlFor="typeFilter" className="sr-only">
-                    Filter Tipe Transaksi
-                  </Label>
-                  <select
-                    id="typeFilter"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as TransactionTypeValue | "ALL")}
-                    className="flex h-10 w-full rounded-full border border-border bg-background px-4 py-2 text-sm shadow-sm outline-none focus:border-primary"
-                  >
-                    <option value="ALL">Semua Tipe</option>
-                    <option value="IN">Tap In (Masuk)</option>
-                    <option value="OUT">Tap Out (Keluar)</option>
-                    <option value="PENALTY">Denda (Penalty)</option>
-                  </select>
-                </div>
-              </div>
-
               {isLoading ? (
                 <div className="py-6 text-center text-sm text-muted-foreground">Memuat transaksi...</div>
               ) : error ? (
@@ -163,6 +170,35 @@ export default function UserHistoryPage() {
                       ))}
                     </tbody>
                   </table>
+
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Menampilkan {transactions.length} dari {totalItems} transaksi.
+                    </p>
+                    <div className="inline-flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage <= 1}
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Sebelumnya
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Halaman {currentPage} / {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                      >
+                        Selanjutnya
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
