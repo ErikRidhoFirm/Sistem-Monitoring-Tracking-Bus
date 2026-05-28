@@ -21,10 +21,13 @@ const dashboardSoftCardClassName =
   "rounded-3xl border border-border/40 bg-background/80 shadow-[0_10px_28px_rgba(15,23,42,0.04)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border/55 hover:bg-background/90 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]";
 
 const chartPanelClassName =
-  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#17355a_0%,#214d79_52%,#5b8de3_100%)] text-[#f4f1e8] shadow-[0_18px_50px_rgba(36,91,176,0.16)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#17355a_0%,#214d79_52%,#5b8de3_100%)] hover:shadow-[0_22px_56px_rgba(36,91,176,0.2)]";
+  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] text-[#f4f1e8] shadow-[0_18px_50px_rgba(36,91,176,0.16)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] hover:shadow-[0_22px_56px_rgba(36,91,176,0.2)]";
+
+const chartPanelStaticClassName =
+  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] text-[#f4f1e8] shadow-[0_18px_50px_rgba(36,91,176,0.16)]";
 
 const profitSummarySectionClassName =
-  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#17355a_0%,#214d79_52%,#5b8de3_100%)] shadow-[0_18px_50px_rgba(36,91,176,0.16)]";
+  "rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#0f223c_0%,#132c4c_15%,#1a3b64_35%,#234d7d_55%,#3465a1_75%,#4880ca_90%,#5b8de3_100%)] shadow-[0_18px_50px_rgba(36,91,176,0.16)]";
 
 
 
@@ -254,7 +257,7 @@ export default function AdminPage() {
         </section>
 
         <section>
-          <Card className={profitSummarySectionClassName}>
+          <Card className={profitSummarySectionClassName + " static-card"}>
             <CardHeader>
               <CardTitle className="text-[#f4f1e8]">Ringkasan Profit</CardTitle>
               <CardDescription className="text-[#f4f1e8]/80">
@@ -264,7 +267,7 @@ export default function AdminPage() {
             <CardContent className="flex h-full flex-col p-5 pt-0">
               {!profitQuery.isLoading && !profitQuery.isError ? (
                 <div className="grid flex-1 gap-4 lg:grid-cols-2">
-                  <Card className={chartPanelClassName + " flex h-full flex-col p-5"}>
+                  <Card className={chartPanelStaticClassName + " static-card flex h-full flex-col p-5"}>
                     <div className="mb-4 flex flex-none flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#f4f1e8]/80">
@@ -283,15 +286,16 @@ export default function AdminPage() {
                     </div>
                     <ChartContainer
                       config={profitChartConfig}
-                      className="min-h-[320px] flex-1 aspect-auto w-full [&_.recharts-cartesian-axis-tick_text]:fill-[#ffb37d] [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/20"
+                      className="min-h-[320px] flex-1 aspect-auto w-full [&_.recharts-cartesian-axis-tick_text]:fill-[#f4f1e8] [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/20"
                     >
                       <LineChart data={todayProfitChartData} margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
                         <CartesianGrid vertical={false} />
-                        <XAxis dataKey="label" tickLine={false} axisLine={false} interval={3} />
-                        <YAxis tickLine={false} axisLine={false} width={56} />
+                        <XAxis dataKey="label" tickLine={false} axisLine={false} interval={3} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
+                        <YAxis tickLine={false} axisLine={false} width={56} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
                         <ChartTooltip
                           content={
                             <ChartTooltipContent
+                              className="bg-[#0b1b36]/95 border border-white/15 text-[#f4f1e8] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-md [&_.text-muted-foreground]:text-white/60 [&_.text-foreground]:text-[#f4f1e8]"
                               formatter={(value: number | string) => formatCurrency(Number(value))}
                             />
                           }
@@ -308,7 +312,7 @@ export default function AdminPage() {
                     </ChartContainer>
                   </Card>
 
-                  <Card className={chartPanelClassName + " flex h-full flex-col p-5"}>
+                  <Card className={chartPanelStaticClassName + " static-card flex h-full flex-col p-5"}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#f4f1e8]/80">
                         Chart Profit Rentang
@@ -359,15 +363,16 @@ export default function AdminPage() {
                     {!profitTrendQuery.isLoading && !profitTrendQuery.isError ? (
                       <ChartContainer
                         config={profitChartConfig}
-                        className="mt-3 h-[220px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-[#ffb37d] [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/20"
+                        className="mt-3 h-[220px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-[#f4f1e8] [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/20"
                       >
                         <LineChart data={selectedRangeProfitChartData} margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
                           <CartesianGrid vertical={false} />
-                          <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                          <YAxis tickLine={false} axisLine={false} width={56} />
+                          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
+                          <YAxis tickLine={false} axisLine={false} width={56} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
                           <ChartTooltip
                             content={
                               <ChartTooltipContent
+                                className="bg-[#0b1b36]/95 border border-white/15 text-[#f4f1e8] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-md [&_.text-muted-foreground]:text-white/60 [&_.text-foreground]:text-[#f4f1e8]"
                                 formatter={(value: number | string) => formatCurrency(Number(value))}
                               />
                             }
