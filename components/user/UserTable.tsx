@@ -22,34 +22,34 @@ export default function UserTable({ users, onEdit, onDelete, onView }: Props) {
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr className="border-b border-gray-100 bg-gray-50/50">
-            <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-16 text-center">No</th>
-            <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Nama Lengkap</th>
-            <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
-            <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
-            <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-            <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
+          <tr className="border-b border-border/40 bg-muted/30">
+            <th className="px-5 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider w-16 text-center">No</th>
+            <th className="px-5 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Nama Lengkap</th>
+            <th className="px-5 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Email</th>
+            <th className="px-5 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Role</th>
+            <th className="px-5 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+            <th className="px-5 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Aksi</th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-50">
+        <tbody className="bg-transparent divide-y divide-border/25">
           {users.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-5 py-8 text-center text-gray-500 text-sm">
+              <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground text-sm">
                 Belum ada data pengguna yang tersimpan.
               </td>
             </tr>
           ) : (
             users.map((user, index) => (
-              <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-5 py-4 text-sm text-gray-500 text-center font-medium">
+              <tr key={user.id} className="hover:bg-muted/15 transition-colors">
+                <td className="px-5 py-4 text-sm text-muted-foreground text-center font-medium">
                   {index + 1}
                 </td>
                 
-                <td className="px-5 py-4 text-sm font-semibold text-gray-900">
+                <td className="px-5 py-4 text-sm font-semibold text-foreground">
                   {user.name}
                 </td>
                 
-                <td className="px-5 py-4 text-sm text-gray-500">
+                <td className="px-5 py-4 text-sm text-muted-foreground">
                   {user.email}
                 </td>
 
