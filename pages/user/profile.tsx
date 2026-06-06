@@ -1,5 +1,12 @@
 import type { GetServerSideProps, NextPage } from "next";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { useRouter } from "next/router";
+import { Eye, EyeOff, User, Mail, Lock, ShieldAlert } from "lucide-react";
 
 import { UserLayout } from "@/components/user/layout";
 import { Button } from "@/components/ui/button";
@@ -15,79 +22,253 @@ type ProfilePageProps = {
 };
 
 const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(userName);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing);
+  const schema = z.object({
+    name: z.string().min(1, "Nama wajib diisi"),
+    email: z.string().email("Format email tidak valid"),
+    newPassword: z.string().optional(),
+    confirmPassword: z.string().optional(),
+  }).refine((data) => {
+    if (data.newPassword && data.newPassword !== data.confirmPassword) {
+      return false;
+    }
+    return true;
+  }, {
+    message: "Konfirmasi password tidak cocok",
+    path: ["confirmPassword"],
+  }).refine((data) => {
+    if (data.newPassword && data.newPassword.length < 6) {
+      return false;
+    }
+    return true;
+  }, {
+    message: "Password baru minimal 6 karakter",
+    path: ["newPassword"],
+  });
+
+  type FormValues = z.infer<typeof schema>;
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: userName,
+      email: userEmail,
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: FormValues) => {
+      const response = await fetch("/api/user/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          newPassword: data.newPassword || undefined,
+        }),
+      });
+
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.errors?.[0]?.message || "Gagal memperbarui profil");
+      }
+      return json;
+    },
+    onSuccess: () => {
+      toast.success("Profil berhasil diperbarui!");
+      setIsEditing(false);
+      reset({
+        newPassword: "",
+        confirmPassword: "",
+      });
+      router.replace(router.asPath);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const onSubmit = (data: FormValues) => {
+    updateProfileMutation.mutate(data);
   };
 
-  const handleSave = async () => {
-    const response = await fetch("/api/user/update-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName, email: userEmail }),
+  const handleCancel = () => {
+    reset({
+      name: userName,
+      email: userEmail,
+      newPassword: "",
+      confirmPassword: "",
     });
-
-    if (response.ok) {
-      alert("Profil berhasil diperbarui");
-      setIsEditing(false);
-    } else {
-      alert("Gagal memperbarui profil");
-    }
+    setIsEditing(false);
   };
 
   return (
     <UserLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-4xl mx-auto">
         <AdminPageHeader
           eyebrow="Profil User"
           title="Profil Pengguna"
           description="Kelola informasi akun Anda dengan tampilan yang konsisten dan profesional." 
         />
 
-        <Card className="border border-border bg-card">
-          <CardHeader>
-            <CardTitle>Informasi Profil</CardTitle>
-            <CardDescription>Detail akun pengguna Anda.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-background p-4">
-                <p className="text-sm font-semibold">Nama</p>
-                <p className="text-sm text-muted-foreground">{userName}</p>
-              </div>
-              <div className="rounded-xl border border-border bg-background p-4">
-                <p className="text-sm font-semibold">Email</p>
-                <p className="text-sm text-muted-foreground">{userEmail}</p>
-              </div>
-              <Button type="button" onClick={handleEditToggle} className="mt-4 w-full">
-                Edit Profil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {isEditing && (
-          <Card className="border border-border bg-card mt-6">
+        {!isEditing ? (
+          <Card className="border border-border bg-card shadow-sm">
             <CardHeader>
-              <CardTitle>Edit Profil</CardTitle>
-              <CardDescription>Perbarui informasi profil Anda.</CardDescription>
+              <CardTitle>Informasi Akun</CardTitle>
+              <CardDescription>Detail profil pengguna Anda saat ini.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="editName">Nama Baru</Label>
-                  <Input
-                    id="editName"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full"
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-border bg-background p-4 flex flex-col gap-1 transition hover:border-gray-300">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Nama Lengkap</span>
+                    <span className="text-sm font-medium text-gray-950">{userName}</span>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-4 flex flex-col gap-1 transition hover:border-gray-300">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Email</span>
+                    <span className="text-sm font-medium text-gray-950">{userEmail}</span>
+                  </div>
                 </div>
-                <Button type="button" onClick={handleSave} className="mt-4 w-full">
-                  Simpan Perubahan
-                </Button>
+                <div className="flex justify-end mt-6">
+                  <Button type="button" onClick={() => setIsEditing(true)} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition shadow-sm">
+                    Edit Profil
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border border-border bg-card shadow-sm transition duration-300 animate-in fade-in slide-in-from-bottom-4">
+            <CardHeader>
+              <CardTitle>Perbarui Profil</CardTitle>
+              <CardDescription>Ubah detail nama, email, atau sandi masuk Anda.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Field Nama */}
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Nama Lengkap</Label>
+                    <Input
+                      id="name"
+                      placeholder="Masukkan nama lengkap"
+                      {...register("name")}
+                      className={`w-full bg-background border ${errors.name ? 'border-red-500 ring-red-500' : 'border-border'} focus:ring-2`}
+                    />
+                    {errors.name && (
+                      <p className="text-xs font-medium text-red-500 mt-1">{errors.name.message}</p>
+                    )}
+                  </div>
+
+                  {/* Field Email */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="email@contoh.com"
+                      {...register("email")}
+                      className={`w-full bg-background border ${errors.email ? 'border-red-500 ring-red-500' : 'border-border'} focus:ring-2`}
+                    />
+                    {errors.email && (
+                      <p className="text-xs font-medium text-red-500 mt-1">{errors.email.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-4">
+                  <h3 className="text-sm font-bold text-gray-950 mb-3 flex items-center gap-1.5">
+                    <Lock size={16} className="text-blue-600" /> Ubah Kata Sandi (Opsional)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Field Password Baru */}
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword" className="text-sm font-semibold text-gray-700">Kata Sandi Baru</Label>
+                      <div className="relative">
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          placeholder="Minimal 6 karakter"
+                          {...register("newPassword")}
+                          className={`w-full bg-background pr-10 border ${errors.newPassword ? 'border-red-500' : 'border-border'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                        >
+                          {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {errors.newPassword && (
+                        <p className="text-xs font-medium text-red-500 mt-1">{errors.newPassword.message}</p>
+                      )}
+                    </div>
+
+                    {/* Field Konfirmasi Password Baru */}
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">Konfirmasi Kata Sandi Baru</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Ulangi kata sandi baru"
+                          {...register("confirmPassword")}
+                          className={`w-full bg-background pr-10 border ${errors.confirmPassword ? 'border-red-500' : 'border-border'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {errors.confirmPassword && (
+                        <p className="text-xs font-medium text-red-500 mt-1">{errors.confirmPassword.message}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tombol Aksi */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={updateProfileMutation.isPending}
+                    className="px-5 py-2 border border-border text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {updateProfileMutation.isPending && (
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    )}
+                    Simpan Perubahan
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
