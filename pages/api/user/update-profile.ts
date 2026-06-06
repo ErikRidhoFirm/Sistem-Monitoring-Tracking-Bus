@@ -1,26 +1,126 @@
 import { prisma } from "@/lib/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
+import { ApiResponses } from "@/lib/api-response";
+import { getSessionFromRequest } from "@/lib/api-session";
+import { auth } from "@/lib/auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+    res.setHeader("Allow", "POST");
+    return ApiResponses.error(res, {
+      status: 405,
+      errors: [{ key: "METHOD_NOT_ALLOWED", message: "Method Not Allowed" }],
+    });
   }
 
-  const { name, email } = req.body;
+  const session = await getSessionFromRequest(req);
+  if (!session?.user) {
+    return ApiResponses.error(res, {
+      status: 401,
+      errors: [{ key: "UNAUTHORIZED", message: "Unauthorized" }],
+    });
+  }
+
+  const { name, email, currentPassword, newPassword } = req.body;
 
   if (!name || !email) {
-    return res.status(400).json({ message: "Name and email are required" });
+    return ApiResponses.error(res, {
+      status: 400,
+      errors: [{ key: "VALIDATION_ERROR", message: "Nama dan email wajib diisi" }],
+    });
   }
 
   try {
+    const userId = session.user.id;
+    const headers = new Headers();
+    if (req.headers.cookie) {
+      headers.set("cookie", req.headers.cookie);
+    }
+    if (req.headers.authorization) {
+      headers.set("authorization", req.headers.authorization);
+    }
+
+    // 1. Password change requested
+    if (newPassword) {
+      try {
+        const ctx = await auth.$context;
+        const passwordHash = await ctx.password.hash(newPassword);
+        
+        // Find existing credential account for the user
+        const credentialAccount = await prisma.account.findFirst({
+          where: {
+            userId,
+            providerId: "credential",
+          },
+        });
+
+        if (credentialAccount) {
+          // Update the existing password
+          await prisma.account.update({
+            where: { id: credentialAccount.id },
+            data: { password: passwordHash },
+          });
+        } else {
+          // Create a credential account if they don't have one (e.g., social login users)
+          await prisma.account.create({
+            data: {
+              id: `${userId}-credential`,
+              userId,
+              providerId: "credential",
+              accountId: email,
+              password: passwordHash,
+            },
+          });
+        }
+      } catch (err: any) {
+        return ApiResponses.error(res, {
+          status: 400,
+          errors: [
+            {
+              key: "VALIDATION_ERROR",
+              field: "newPassword",
+              message: err.message || "Gagal mengubah password",
+            },
+          ],
+        });
+      }
+    }
+
+    // 2. Email change requested - check uniqueness
+    if (email !== session.user.email) {
+      // Check if email already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+      if (existingUser) {
+        return ApiResponses.error(res, {
+          status: 400,
+          errors: [
+            {
+              key: "VALIDATION_ERROR",
+              field: "email",
+              message: "Email sudah digunakan oleh pengguna lain",
+            },
+          ],
+        });
+      }
+    }
+
+    // 3. Update the fields in the database
     const updatedUser = await prisma.user.update({
-      where: { email: req.body.email }, // Assuming email is passed in the request body
-      data: { name },
+      where: { id: userId },
+      data: {
+        name,
+        email,
+      },
     });
 
-    return res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Internal server error" });
+    return ApiResponses.success(res, updatedUser);
+  } catch (error: any) {
+    console.error("Update profile error:", error);
+    return ApiResponses.error(res, {
+      status: 500,
+      errors: [{ message: error.message || "Gagal memperbarui profil" }],
+    });
   }
 }
