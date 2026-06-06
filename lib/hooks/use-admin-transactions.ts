@@ -88,13 +88,7 @@ export function useAdminTransactions(
       const url = `/api/admin/transactions?${query}`;
 
       return requestApi<{
-        users: Array<{
-          rfidTag: string;
-          userName: string;
-          userEmail: string;
-          latestTx: any;
-          txList: any[];
-        }>;
+        transactions: TransactionItem[];
         total: number;
       }>(url);
     },
