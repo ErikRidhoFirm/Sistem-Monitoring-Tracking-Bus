@@ -82,18 +82,6 @@ export default async function handler(
     const startDate = req.query.startDate as string | undefined;
     const endDate = req.query.endDate as string | undefined;
 
-    // Filters for Card search and user mapping
-    const whereClause: any = {
-      AND: [],
-    };
-
-    // Filter by card user link status
-    if (userLinkFilter === "LINKED") {
-      whereClause.AND.push({ userId: { not: null } });
-    } else if (userLinkFilter === "UNLINKED") {
-      whereClause.AND.push({ userId: null });
-    }
-
     // Filter transactions
     const txWhere: any = {
       AND: [],
@@ -114,116 +102,85 @@ export default async function handler(
       txWhere.AND.push({ createdAt: { lte: end } });
     }
 
-    // Link the card search with transaction filters
-    if (txWhere.AND.length > 0) {
-      whereClause.AND.push({
-        transactions: {
-          some: {
-            AND: txWhere.AND
-          }
-        }
-      });
-    } else {
-      // Must have at least one transaction to be considered in the transaction logs
-      whereClause.AND.push({
-        transactions: {
-          some: {}
-        }
-      });
+    // Filter by card user link status
+    if (userLinkFilter === "LINKED") {
+      txWhere.AND.push({ card: { userId: { not: null } } });
+    } else if (userLinkFilter === "UNLINKED") {
+      txWhere.AND.push({ card: { userId: null } });
     }
 
     if (search) {
-      whereClause.AND.push({
+      txWhere.AND.push({
         OR: [
           { rfidTag: { contains: search, mode: "insensitive" } },
+          { stationName: { contains: search, mode: "insensitive" } },
           {
-            user: {
-              name: { contains: search, mode: "insensitive" }
-            }
-          },
-          {
-            user: {
-              email: { contains: search, mode: "insensitive" }
-            }
-          },
-          {
-            transactions: {
-              some: {
-                OR: [
-                  { stationName: { contains: search, mode: "insensitive" } },
-                  {
-                    bus: {
-                      busCode: { contains: search, mode: "insensitive" }
-                    }
-                  },
-                  {
-                    bus: {
-                      plateNumber: { contains: search, mode: "insensitive" }
-                    }
-                  }
-                ]
+            card: {
+              user: {
+                name: { contains: search, mode: "insensitive" }
               }
+            }
+          },
+          {
+            card: {
+              user: {
+                email: { contains: search, mode: "insensitive" }
+              }
+            }
+          },
+          {
+            bus: {
+              busCode: { contains: search, mode: "insensitive" }
+            }
+          },
+          {
+            bus: {
+              plateNumber: { contains: search, mode: "insensitive" }
             }
           }
         ]
       });
     }
 
-    const finalWhere = whereClause.AND.length > 0 ? whereClause : undefined;
+    const finalWhere = txWhere.AND.length > 0 ? txWhere : undefined;
 
     try {
-      const [cards, total] = await prisma.$transaction([
-        prisma.card.findMany({
+      const [transactions, total] = await prisma.$transaction([
+        prisma.transaction.findMany({
           where: finalWhere,
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            },
-            transactions: {
-              where: txWhere.AND.length > 0 ? { AND: txWhere.AND } : undefined,
-              orderBy: {
-                createdAt: "desc"
-              },
+            card: {
               include: {
-                bus: {
+                user: {
                   select: {
                     id: true,
-                    busCode: true,
-                    plateNumber: true
+                    name: true,
+                    email: true
                   }
                 }
+              }
+            },
+            bus: {
+              select: {
+                id: true,
+                busCode: true,
+                plateNumber: true
               }
             }
           },
           orderBy: {
-            rfidTag: "asc"
+            createdAt: "desc"
           },
           skip,
           take: limit
         }),
-        prisma.card.count({
+        prisma.transaction.count({
           where: finalWhere
         })
       ]);
 
-      const users = cards.map((card) => {
-        const txList = card.transactions;
-        const latestTx = txList[0] || null;
-        return {
-          rfidTag: card.rfidTag,
-          userName: card.user?.name ?? "Tanpa Nama",
-          userEmail: card.user?.email ?? "Tidak ada email",
-          latestTx,
-          txList
-        };
-      });
-
       return ApiResponses.success(res, {
-        users,
+        transactions,
         total
       });
     } catch (error) {
