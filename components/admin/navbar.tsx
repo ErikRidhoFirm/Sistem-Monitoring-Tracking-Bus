@@ -1,8 +1,16 @@
-import { Bell } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-export function AdminNavbar() {
+type AdminNavbarProps = {
+  onMobileMenuClick: () => void;
+  isMobileSidebarOpen: boolean;
+};
+
+export function AdminNavbar({
+  onMobileMenuClick,
+  isMobileSidebarOpen,
+}: AdminNavbarProps) {
   return (
     <div
       data-admin-navbar
@@ -17,12 +25,23 @@ export function AdminNavbar() {
           Buswy Admin
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon" type="button" className="h-9 w-9 text-[#f4f1e8]/80 hover:bg-white/10 hover:text-[#f4f1e8]">
-            <Bell className="h-4 w-4" />
+        {/* Mobile menu */}
+        <div className="flex items-center gap-1 shrink-0 md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            type="button"
+            aria-label={isMobileSidebarOpen ? "Tutup sidebar" : "Buka sidebar"}
+            aria-expanded={isMobileSidebarOpen}
+            onClick={onMobileMenuClick}
+            className="h-9 w-9 text-[#f4f1e8]/80 hover:bg-white/10 hover:text-[#f4f1e8]"
+          >
+            {isMobileSidebarOpen ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <Menu className="h-4 w-4" />
+            )}
           </Button>
-          {/* profile icon removed */}
         </div>
       </div>
     </div>

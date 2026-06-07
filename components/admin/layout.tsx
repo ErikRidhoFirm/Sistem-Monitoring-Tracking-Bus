@@ -36,10 +36,28 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
     return Number.isFinite(parsedWidth) && parsedWidth > 0 ? parsedWidth : 256;
   });
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    if (!isMobileSidebarOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileSidebarOpen]);
 
   return (
     <div
@@ -62,17 +80,31 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         }
       `}</style>
       <AdminSidebar
-        className="hidden md:flex"
+        className=""
         width={sidebarWidth}
         onWidthChange={setSidebarWidth}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
+
+      {isMobileSidebarOpen ? (
+        <button
+          type="button"
+          aria-label="Tutup sidebar"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-[2px] md:hidden"
+        />
+      ) : null}
 
       <main
         data-admin-shell
         className="relative min-h-screen flex-1 transition-all duration-200 overflow-x-hidden"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(96,165,250,0.42),transparent_24%),radial-gradient(circle_at_82%_16%,rgba(251,146,60,0.34),transparent_26%),radial-gradient(circle_at_50%_88%,rgba(129,140,248,0.16),transparent_28%),linear-gradient(120deg,rgba(242,247,255,0.98)_0%,rgba(255,240,232,0.92)_52%,rgba(239,246,255,0.98)_100%)]" />
-        <AdminNavbar />
+        <AdminNavbar
+          onMobileMenuClick={() => setIsMobileSidebarOpen((current) => !current)}
+          isMobileSidebarOpen={isMobileSidebarOpen}
+        />
         <div className="relative z-10 p-4 pt-20 md:p-8 md:pt-24">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </div>

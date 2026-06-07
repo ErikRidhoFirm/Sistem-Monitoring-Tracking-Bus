@@ -21,6 +21,7 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 // Ikon yang kita gunakan untuk Sidebar dan Profile
 import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { type CSSProperties } from "react";
 
 /** * Fungsi helper 'cn' (biasanya ada di folder lib/utils.ts)
  * Jika kamu belum punya, kamu bisa buat sendiri seperti ini:
@@ -49,6 +50,8 @@ type AdminSidebarProps = {
   items?: SidebarItem[];
   width?: number;
   onWidthChange?: (width: number) => void;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 };
 
 export function AdminSidebar({
@@ -56,9 +59,13 @@ export function AdminSidebar({
   items = defaultItems,
   width = 256,
   onWidthChange,
+  isMobileOpen = false,
+  onMobileClose,
 }: AdminSidebarProps) {
   const router = useRouter();
   const isCollapsed = width <= 96;
+  const isDesktopCollapsed = !isMobileOpen && isCollapsed;
+  const sidebarWidth = isMobileOpen ? "min(82vw, 300px)" : `${width}px`;
 
   const handleSignOut = async () => {
     const { error } = await authClient.signOut();
@@ -76,12 +83,21 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-white/15 bg-[linear-gradient(135deg,#17355a_0%,#214d79_52%,#5b8de3_100%)] text-sidebar-foreground shadow-[12px_0_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-in-out",
+        "fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-white/15 text-sidebar-foreground shadow-[12px_0_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-in-out md:z-40",
+        isMobileOpen
+          ? "bg-[linear-gradient(180deg,#17355a_0%,#1f466f_55%,#345f93_100%)]"
+          : "bg-[linear-gradient(135deg,#17355a_0%,#214d79_52%,#5b8de3_100%)]",
+        isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         className,
       )}
-      style={{ width: `${width}px` }}
+      style={{ width: sidebarWidth } as CSSProperties}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_18%,rgba(0,0,0,0.08)_100%)]" />
+      <div className={cn(
+        "pointer-events-none absolute inset-0",
+        isMobileOpen
+          ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0)_24%,rgba(0,0,0,0.12)_100%)]"
+          : "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_18%,rgba(0,0,0,0.08)_100%)]",
+      )} />
       {/* resize handle removed per request */}
       <div className="relative z-10 mb-6 px-4 pt-6">
         <div className="flex items-center justify-between gap-3">
@@ -113,7 +129,7 @@ export function AdminSidebar({
           {/* TOGGLE */}
           <button
             onClick={() => onWidthChange?.(isCollapsed ? 256 : 96)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10"
+            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10 md:flex"
           >
             {isCollapsed ? (
               <ChevronRight className="h-5 w-5 text-slate-200" />
@@ -135,6 +151,7 @@ export function AdminSidebar({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onMobileClose}
               className={cn(
                 "flex items-center rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
                 active
@@ -151,7 +168,7 @@ export function AdminSidebar({
               <span
                 className={cn(
                   "ml-3 inline-block overflow-hidden whitespace-nowrap transition-all duration-200 origin-left",
-                  isCollapsed
+                  isDesktopCollapsed
                     ? "max-w-0 scale-0 opacity-0 ml-0"
                     : "max-w-[180px] scale-100 opacity-100 ml-3",
                 )}
@@ -176,7 +193,7 @@ export function AdminSidebar({
         <div
           className={cn(
             "ml-2 flex flex-col overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
-            isCollapsed
+            isDesktopCollapsed
               ? "w-0 opacity-0 pointer-events-none"
               : "w-auto opacity-100",
           )}
@@ -197,7 +214,7 @@ export function AdminSidebar({
           <span
             className={cn(
               "transition-all duration-200 origin-left",
-              isCollapsed ? "scale-0 opacity-0 w-0" : "scale-100 opacity-100",
+              isDesktopCollapsed ? "scale-0 opacity-0 w-0" : "scale-100 opacity-100",
             )}
           >
             Logout
