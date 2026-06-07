@@ -6,15 +6,9 @@ import { toast } from "react-hot-toast";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { authClient } from "@/lib/auth-client";
 
 const registerSchema = z
@@ -69,101 +63,101 @@ export default function Register() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Buat akun</CardTitle>
-          <CardDescription>
-            Daftar dengan email dan password untuk mulai menggunakan aplikasi.
-          </CardDescription>
-        </CardHeader>
+    <AuthShell
+      badge="Buat Akun"
+      title="Daftar ke Buswy"
+      description="Buat akun untuk mengakses dashboard, melihat bus terdekat, dan mengikuti status perjalanan dengan tampilan yang seragam di seluruh halaman."
+      footerQuestion="Sudah punya akun?"
+      footerLinkHref="/auth/login"
+      footerLinkLabel="Login"
+    >
+      <form
+        className="space-y-4"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+      >
+        <div className="space-y-2">
+          <Label htmlFor="name">Nama</Label>
+          <Input
+            id="name"
+            type="text"
+            autoComplete="name"
+            className="h-12 rounded-2xl border-[#245bb0]/20 bg-white/80"
+            {...register("name")}
+          />
+          {errors.name ? (
+            <p className="text-sm text-destructive">{errors.name.message}</p>
+          ) : null}
+        </div>
 
-        <CardContent>
-          <form
-            className="space-y-4"
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
-          >
-            <div className="space-y-2">
-              <Label htmlFor="name">Nama</Label>
-              <Input
-                id="name"
-                type="text"
-                autoComplete="name"
-                {...register("name")}
-              />
-              {errors.name ? (
-                <p className="text-sm text-destructive">
-                  {errors.name.message}
-                </p>
-              ) : null}
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            className="h-12 rounded-2xl border-[#245bb0]/20 bg-white/80"
+            {...register("email")}
+          />
+          {errors.email ? (
+            <p className="text-sm text-destructive">{errors.email.message}</p>
+          ) : null}
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register("email")}
-              />
-              {errors.email ? (
-                <p className="text-sm text-destructive">
-                  {errors.email.message}
-                </p>
-              ) : null}
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            className="h-12 rounded-2xl border-[#245bb0]/20 bg-white/80"
+            {...register("password")}
+          />
+          {errors.password ? (
+            <p className="text-sm text-destructive">{errors.password.message}</p>
+          ) : null}
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                {...register("password")}
-              />
-              {errors.password ? (
-                <p className="text-sm text-destructive">
-                  {errors.password.message}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Konfirmasi password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                {...register("confirmPassword")}
-              />
-              {errors.confirmPassword ? (
-                <p className="text-sm text-destructive">
-                  {errors.confirmPassword.message}
-                </p>
-              ) : null}
-            </div>
-
-            {submitSuccess ? (
-              <p className="text-sm text-green-600">{submitSuccess}</p>
-            ) : null}
-
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Membuat akun..." : "Daftar"}
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Sudah punya akun?{" "}
-              <Link
-                href="/auth/login"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                Login
-              </Link>
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Konfirmasi password</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            className="h-12 rounded-2xl border-[#245bb0]/20 bg-white/80"
+            {...register("confirmPassword")}
+          />
+          {errors.confirmPassword ? (
+            <p className="text-sm text-destructive">
+              {errors.confirmPassword.message}
             </p>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+          ) : null}
+        </div>
+
+        {submitSuccess ? (
+          <p className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {submitSuccess}
+          </p>
+        ) : null}
+
+        <Button
+          type="submit"
+          className="h-12 w-full rounded-full bg-[#1f3d3a] font-semibold text-[#f4f1e8] transition hover:bg-[#132b29]"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Membuat akun..." : "Daftar"}
+        </Button>
+
+        <p className="text-center text-sm text-[#1f3d3a]/70 sm:hidden">
+          Sudah punya akun?{" "}
+          <Link
+            href="/auth/login"
+            className="font-semibold text-[#173330] underline-offset-4 hover:underline"
+          >
+            Login
+          </Link>
+        </p>
+      </form>
+    </AuthShell>
   );
 }
