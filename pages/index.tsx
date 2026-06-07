@@ -48,7 +48,7 @@ export default function Home() {
 
   return (
     <div
-      className={`${sora.variable} ${manrope.variable} min-h-screen bg-[#f7f9ff] text-[#1f3d3a] overflow-x-hidden min-w-0`}
+      className={`${sora.variable} ${manrope.variable} relative isolate min-h-screen bg-[#f7f9ff] text-[#1f3d3a] overflow-x-hidden min-w-0`}
     >
       {/* Decorative background: hide on small screens to avoid overflow on mobile */}
       <div className={`pointer-events-none absolute inset-0 overflow-hidden md:block`}>

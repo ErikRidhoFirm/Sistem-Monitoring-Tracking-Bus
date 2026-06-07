@@ -6,15 +6,9 @@ import { toast } from "react-hot-toast";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { authClient } from "@/lib/auth-client";
 import { UserRole } from "@/types/user-role";
 
@@ -78,80 +72,78 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Masuk akun</CardTitle>
-          <CardDescription>
-            Login dengan email dan password untuk melanjutkan.
-          </CardDescription>
-        </CardHeader>
+    <AuthShell
+      badge="Masuk Akun"
+      title="Masuk ke Buswy"
+      description="Masuk untuk melihat dashboard, memantau armada, dan membuka live map dengan cepat."
+      footerQuestion="Belum punya akun?"
+      footerLinkHref="/auth/register"
+      footerLinkLabel="Daftar"
+    >
+      <form
+        className="space-y-4"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+      >
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            className="h-12 rounded-2xl border-[#245bb0]/20 bg-white/80"
+            {...register("email")}
+          />
+          {errors.email ? (
+            <p className="text-sm text-destructive">{errors.email.message}</p>
+          ) : null}
+        </div>
 
-        <CardContent>
-          <form
-            className="space-y-4"
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            className="h-12 rounded-2xl border-[#245bb0]/20 bg-white/80"
+            {...register("password")}
+          />
+          {errors.password ? (
+            <p className="text-sm text-destructive">{errors.password.message}</p>
+          ) : null}
+        </div>
+
+        <label
+          className="flex items-center gap-2 text-sm text-[#1f3d3a]/70"
+          htmlFor="rememberMe"
+        >
+          <input
+            id="rememberMe"
+            type="checkbox"
+            className="size-4 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring/30"
+            {...register("rememberMe")}
+          />
+          Ingat saya
+        </label>
+
+        <Button
+          type="submit"
+          className="h-12 w-full rounded-full bg-[#1f3d3a] font-semibold text-[#f4f1e8] transition hover:bg-[#132b29]"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Memproses..." : "Login"}
+        </Button>
+
+        <p className="text-center text-sm text-[#1f3d3a]/70 sm:hidden">
+          Belum punya akun?{" "}
+          <Link
+            href="/auth/register"
+            className="font-semibold text-[#173330] underline-offset-4 hover:underline"
           >
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register("email")}
-              />
-              {errors.email ? (
-                <p className="text-sm text-destructive">
-                  {errors.email.message}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                {...register("password")}
-              />
-              {errors.password ? (
-                <p className="text-sm text-destructive">
-                  {errors.password.message}
-                </p>
-              ) : null}
-            </div>
-
-            <label
-              className="flex items-center gap-2 text-sm text-muted-foreground"
-              htmlFor="rememberMe"
-            >
-              <input
-                id="rememberMe"
-                type="checkbox"
-                className="size-4 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring/30"
-                {...register("rememberMe")}
-              />
-              Ingat saya
-            </label>
-
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Memproses..." : "Login"}
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Belum punya akun?{" "}
-              <Link
-                href="/auth/register"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                Daftar
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+            Daftar
+          </Link>
+        </p>
+      </form>
+    </AuthShell>
   );
 }
