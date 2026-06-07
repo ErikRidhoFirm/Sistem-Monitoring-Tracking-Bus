@@ -48,16 +48,17 @@ export default function Home() {
 
   return (
     <div
-      className={`${sora.variable} ${manrope.variable} min-h-screen bg-[#f7f9ff] text-[#1f3d3a]`}
+      className={`${sora.variable} ${manrope.variable} min-h-screen bg-[#f7f9ff] text-[#1f3d3a] overflow-x-hidden min-w-0`}
     >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Decorative background: hide on small screens to avoid overflow on mobile */}
+      <div className={`pointer-events-none absolute inset-0 overflow-hidden md:block`}>
         <div className="aurora-mesh absolute inset-0" />
         <div className="gradient-orb orb-a absolute -top-28 -left-20 h-80 w-80 rounded-full" />
-        <div className="gradient-orb orb-b absolute top-28 right-0 h-112 w-md rounded-full" />
+        <div className="gradient-orb orb-b absolute top-28 right-0 h-112 w-72 rounded-full" />
         <div className="gradient-orb orb-c absolute bottom-8 left-1/3 h-72 w-72 rounded-full" />
       </div>
 
-      <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-16 px-6 py-8 md:px-10 lg:px-16 lg:py-12">
+      <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 md:px-10 lg:px-16 lg:py-12 min-w-0">
         <header
           className="reveal flex items-center justify-between rounded-3xl border border-[#173330]/10 bg-white/70 px-5 py-4 shadow-[0_12px_36px_rgba(34,91,176,0.08)] backdrop-blur-md"
           style={{ animationDelay: "100ms" }}
@@ -121,10 +122,10 @@ export default function Home() {
           </button>
         </header>
 
-        <section className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="grid items-start gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-8">
             <div
-              className="reveal space-y-5"
+              className="reveal space-y-4"
               style={{ animationDelay: "200ms" }}
             >
               <p className="inline-flex w-fit items-center rounded-full border border-[#245bb0]/20 bg-linear-to-r from-[#e7f0ff]/75 to-[#e9fbff]/75 px-4 py-1 text-xs font-semibold tracking-[0.2em] text-[#1f3d3a]/80 uppercase">
@@ -132,10 +133,10 @@ export default function Home() {
               </p>
               <h1
                 style={{ fontFamily: "var(--font-display)" }}
-                className="text-5xl leading-[1.06] font-semibold tracking-tight text-[#173330] sm:text-6xl lg:text-7xl"
+                className="text-3xl leading-[1.08] font-semibold tracking-tight text-[#173330] sm:text-4xl md:text-6xl lg:text-7xl"
               >
                 Naik Bus Kampus
-                <span className="block text-[#e86f3f]">
+                <span className="block text-[#e86f3f] text-base sm:text-lg md:text-xl">
                   Tanpa Menebak Waktu.
                 </span>
               </h1>
@@ -164,7 +165,7 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               {[
                 { label: "Bus Aktif", value: "24" },
                 { label: "Shelter Kampus", value: "38" },
@@ -172,7 +173,7 @@ export default function Home() {
               ].map((item, index) => (
                 <article
                   key={item.label}
-                  className="reveal rounded-2xl border border-[#245bb0]/15 bg-white/72 p-4 shadow-[0_8px_30px_rgba(36,91,176,0.08)] backdrop-blur"
+                  className="reveal rounded-2xl border border-[#245bb0]/15 bg-white/72 p-4 shadow-[0_8px_30px_rgba(36,91,176,0.08)] backdrop-blur min-w-0 max-w-full break-words"
                   style={{ animationDelay: `${420 + index * 110}ms` }}
                 >
                   <p className="text-xs tracking-[0.16em] text-[#1f3d3a]/60 uppercase">
@@ -239,18 +240,18 @@ export default function Home() {
           </aside>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-          <Card className="border-[#245bb0]/15 bg-white/70 shadow-[0_12px_40px_rgba(36,91,176,0.08)] backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle style={{ fontFamily: "var(--font-display)" }} className="text-2xl text-[#173330]">
+        <section className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1.1fr]">
+          <Card className="border-[#245bb0]/15 bg-white/70 shadow-[0_12px_40px_rgba(36,91,176,0.08)] backdrop-blur-sm min-h-[220px] md:min-h-[280px] w-full max-w-full min-w-0">
+              <CardHeader>
+              <CardTitle style={{ fontFamily: "var(--font-display)" }} className="text-xl sm:text-2xl text-[#173330]">
                 Statistik Trip Mingguan
               </CardTitle>
               <CardDescription className="text-[#1f3d3a]/70">
                 Ringkasan jumlah perjalanan bus selama 6 hari terakhir.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[280px] w-full">
+            <CardContent className="flex-1 min-w-0">
+              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[240px] md:h-[280px] w-full max-w-full min-w-0">
                 <LineChart data={chartData} margin={{ left: 12, right: 12 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis
@@ -273,11 +274,11 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <div className="reveal rounded-[2rem] border border-[#245bb0]/15 bg-white/65 p-6 shadow-[0_12px_40px_rgba(36,91,176,0.08)] backdrop-blur-sm" style={{ animationDelay: "760ms" }}>
+          <div className="reveal rounded-[2rem] border border-[#245bb0]/15 bg-white/65 p-4 sm:p-6 shadow-[0_12px_40px_rgba(36,91,176,0.08)] backdrop-blur-sm min-h-[220px] md:min-h-[280px] w-full max-w-full min-w-0" style={{ animationDelay: "760ms" }}>
             <p className="text-xs tracking-[0.2em] text-[#1f3d3a]/60 uppercase">
               Daily Snapshot
             </p>
-            <h2 style={{ fontFamily: "var(--font-display)" }} className="mt-3 text-3xl font-semibold text-[#173330]">
+            <h2 style={{ fontFamily: "var(--font-display)" }} className="mt-3 text-2xl sm:text-3xl font-semibold text-[#173330]">
               Dashboard Operasional Kampus
             </h2>
             <p className="mt-4 max-w-lg text-sm leading-7 text-[#1f3d3a]/75 md:text-base">
