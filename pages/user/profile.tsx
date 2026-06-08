@@ -24,30 +24,60 @@ type ProfilePageProps = {
 const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const schema = z.object({
     name: z.string().min(1, "Nama wajib diisi"),
     email: z.string().email("Format email tidak valid"),
+    currentPassword: z.string().optional(),
     newPassword: z.string().optional(),
     confirmPassword: z.string().optional(),
-  }).refine((data) => {
-    if (data.newPassword && data.newPassword !== data.confirmPassword) {
-      return false;
+  }).superRefine((data, ctx) => {
+    const hasCurrent = !!data.currentPassword?.trim();
+    const hasNew = !!data.newPassword?.trim();
+    const hasConfirm = !!data.confirmPassword?.trim();
+
+    if (hasCurrent || hasNew || hasConfirm) {
+      if (!hasCurrent) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sandi saat ini wajib diisi untuk mengubah kata sandi",
+          path: ["currentPassword"],
+        });
+      }
+      if (!hasNew) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Kata sandi baru wajib diisi",
+          path: ["newPassword"],
+        });
+      }
+      if (!hasConfirm) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Konfirmasi kata sandi baru wajib diisi",
+          path: ["confirmPassword"],
+        });
+      }
+
+      if (hasNew && data.newPassword && data.newPassword.length < 6) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Password baru minimal 6 karakter",
+          path: ["newPassword"],
+        });
+      }
+
+      if (hasNew && hasConfirm && data.newPassword !== data.confirmPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Konfirmasi password tidak cocok",
+          path: ["confirmPassword"],
+        });
+      }
     }
-    return true;
-  }, {
-    message: "Konfirmasi password tidak cocok",
-    path: ["confirmPassword"],
-  }).refine((data) => {
-    if (data.newPassword && data.newPassword.length < 6) {
-      return false;
-    }
-    return true;
-  }, {
-    message: "Password baru minimal 6 karakter",
-    path: ["newPassword"],
   });
 
   type FormValues = z.infer<typeof schema>;
@@ -63,6 +93,7 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
     defaultValues: {
       name: userName,
       email: userEmail,
+      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -76,6 +107,7 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
         body: JSON.stringify({
           name: data.name,
           email: data.email,
+          currentPassword: data.currentPassword || undefined,
           newPassword: data.newPassword || undefined,
         }),
       });
@@ -90,6 +122,7 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
       toast.success("Profil berhasil diperbarui!");
       setIsEditing(false);
       reset({
+        currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
@@ -108,6 +141,7 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
     reset({
       name: userName,
       email: userEmail,
+      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     });
@@ -193,7 +227,31 @@ const ProfilePage: NextPage<ProfilePageProps> = ({ userName, userEmail }) => {
                     <Lock size={16} className="text-blue-600" /> Ubah Kata Sandi (Opsional)
                   </h3>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Field Sandi Saat Ini */}
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword" className="text-sm font-semibold text-gray-700">Sandi Saat Ini</Label>
+                      <div className="relative">
+                        <Input
+                          id="currentPassword"
+                          type={showCurrentPassword ? "text" : "password"}
+                          placeholder="Sandi saat ini"
+                          {...register("currentPassword")}
+                          className={`w-full bg-background pr-10 border ${errors.currentPassword ? 'border-red-500' : 'border-border'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                        >
+                          {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {errors.currentPassword && (
+                        <p className="text-xs font-medium text-red-500 mt-1">{errors.currentPassword.message}</p>
+                      )}
+                    </div>
+
                     {/* Field Password Baru */}
                     <div className="space-y-2">
                       <Label htmlFor="newPassword" className="text-sm font-semibold text-gray-700">Kata Sandi Baru</Label>

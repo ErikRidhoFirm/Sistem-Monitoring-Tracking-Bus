@@ -41,37 +41,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 1. Password change requested
-    if (newPassword) {
+    if (newPassword || currentPassword) {
+      if (!currentPassword || !newPassword) {
+        return ApiResponses.error(res, {
+          status: 400,
+          errors: [{ key: "VALIDATION_ERROR", message: "Sandi saat ini dan sandi baru wajib diisi untuk mengubah kata sandi" }],
+        });
+      }
+
+      // Verify current password
+      const credentialAccount = await prisma.account.findFirst({
+        where: {
+          userId,
+          providerId: "credential",
+        },
+      });
+
+      if (!credentialAccount || !credentialAccount.password) {
+        return ApiResponses.error(res, {
+          status: 400,
+          errors: [{ key: "VALIDATION_ERROR", field: "currentPassword", message: "Akun Anda tidak dikonfigurasi dengan kata sandi" }],
+        });
+      }
+
+      const ctx = await auth.$context;
+      const isValid = await ctx.password.verify({
+        hash: credentialAccount.password,
+        password: currentPassword,
+      });
+
+      if (!isValid) {
+        return ApiResponses.error(res, {
+          status: 400,
+          errors: [{ key: "VALIDATION_ERROR", field: "currentPassword", message: "Sandi saat ini salah" }],
+        });
+      }
+
       try {
-        const ctx = await auth.$context;
         const passwordHash = await ctx.password.hash(newPassword);
         
-        // Find existing credential account for the user
-        const credentialAccount = await prisma.account.findFirst({
-          where: {
-            userId,
-            providerId: "credential",
-          },
+        // Update the existing password
+        await prisma.account.update({
+          where: { id: credentialAccount.id },
+          data: { password: passwordHash },
         });
-
-        if (credentialAccount) {
-          // Update the existing password
-          await prisma.account.update({
-            where: { id: credentialAccount.id },
-            data: { password: passwordHash },
-          });
-        } else {
-          // Create a credential account if they don't have one (e.g., social login users)
-          await prisma.account.create({
-            data: {
-              id: `${userId}-credential`,
-              userId,
-              providerId: "credential",
-              accountId: email,
-              password: passwordHash,
-            },
-          });
-        }
       } catch (err: any) {
         return ApiResponses.error(res, {
           status: 400,
