@@ -82,37 +82,53 @@ export default function UserForm({ onSubmit, editUser, isPending }: Props) {
           />
         </div>
 
-        {editUser && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role / Peran</label>
-              <select 
-                value={role} 
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        {!editUser && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div className="relative">
+              <input 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="Masukkan password" 
+                type={showPassword ? "text" : "password"}
+                className="w-full bg-gray-50 border border-gray-200 pl-3 pr-10 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition"
               >
-                <option value="USER">USER</option>
-                <option value="ADMIN">ADMIN</option>
-              </select>
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
-          </>
+          </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Role / Peran</label>
+          <select 
+            value={role} 
+            onChange={(e) => setRole(e.target.value)}
+            className="w-full bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="USER">USER</option>
+            <option value="ADMIN">ADMIN</option>
+          </select>
+        </div>
       </div>
 
-      {editUser && (
-        <div className="flex items-center gap-2 mt-2">
-          <input 
-            type="checkbox" 
-            id="verified"
-            checked={emailVerified}
-            onChange={(e) => setEmailVerified(e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-          />
-          <label htmlFor="verified" className="text-sm font-medium text-gray-700 cursor-pointer">
-            Tandai Email sebagai Terverifikasi
-          </label>
-        </div>
-      )}
+      <div className="flex items-center gap-2 mt-2">
+        <input 
+          type="checkbox" 
+          id="verified"
+          checked={emailVerified}
+          onChange={(e) => setEmailVerified(e.target.checked)}
+          className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+        />
+        <label htmlFor="verified" className="text-sm font-medium text-gray-700 cursor-pointer">
+          Tandai Email sebagai Terverifikasi
+        </label>
+      </div>
 
       <div className="flex justify-end pt-4 border-t border-gray-100 mt-4">
         <button 
