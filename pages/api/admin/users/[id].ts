@@ -68,6 +68,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === "DELETE") {
     try {
+      const userToDelete = await prisma.user.findUnique({
+        where: { id },
+      });
+
+      if (!userToDelete) {
+        return ApiResponses.error(res, {
+          status: 404,
+          errors: [{ message: "User tidak ditemukan" }],
+        });
+      }
+
+      if (userToDelete.role === "ADMIN") {
+        return ApiResponses.error(res, {
+          status: 400,
+          errors: [{ message: "Anda tidak dapat menghapus user dengan role ADMIN" }],
+        });
+      }
+
       await prisma.user.delete({
         where: { id },
       });
