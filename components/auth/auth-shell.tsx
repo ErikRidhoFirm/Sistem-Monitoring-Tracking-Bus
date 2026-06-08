@@ -32,21 +32,30 @@ export function AuthShell({
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-6 sm:px-6 md:px-10 lg:px-16">
         <section className="reveal mx-auto w-full max-w-xl" style={{ animationDelay: "120ms" }}>
           <div className="rounded-[2rem] border border-[#245bb0]/15 bg-white/75 p-4 shadow-[0_20px_60px_rgba(36,91,176,0.14)] backdrop-blur-md sm:p-6 md:p-8">
-            <div className="mb-6 flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1f3d3a] text-sm font-bold tracking-wide text-[#f4f1e8]">
-                BW
-              </span>
-              <div>
-                <p
-                  style={{ fontFamily: "var(--font-display)" }}
-                  className="text-lg font-semibold leading-none text-[#173330]"
-                >
-                  Buswy
-                </p>
-                <p className="text-xs tracking-[0.18em] text-[#1f3d3a]/60 uppercase">
-                  Campus Transit
-                </p>
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1f3d3a] text-sm font-bold tracking-wide text-[#f4f1e8]">
+                  BW
+                </span>
+                <div>
+                  <p
+                    style={{ fontFamily: "var(--font-display)" }}
+                    className="text-lg font-semibold leading-none text-[#173330]"
+                  >
+                    Buswy
+                  </p>
+                  <p className="text-xs tracking-[0.18em] text-[#1f3d3a]/60 uppercase">
+                    Campus Transit
+                  </p>
+                </div>
               </div>
+
+              <Link
+                href="/"
+                className="rounded-full bg-gradient-to-br from-[#80c7ff] to-[#e6f4ff] border border-[#245bb0]/15 px-4 py-2 text-sm font-semibold text-[#1f3d3a] transition-all duration-200 hover:from-[#94d1ff] hover:to-[#f0f8ff] hover:shadow-md flex items-center gap-2"
+              >
+                <span>Landing Page</span>
+              </Link>
             </div>
 
             <div className="mb-6 space-y-2">
