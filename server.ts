@@ -3,6 +3,7 @@ import next from "next";
 
 import { startMqttGeofenceListener } from "./lib/mqtt-geofence";
 import { startMqttTapHadoopPipeline } from "./lib/mqtt-tap-hadoop-pipeline";
+import { startMqttTripHadoopPipeline } from "./lib/mqtt-trip-hadoop-pipeline";
 import { startRealtimeWsServer } from "./lib/realtime-ws-server";
 
 const port = parseInt(process.env.PORT || "3000", 10);
@@ -12,7 +13,8 @@ const handle = nextApp.getRequestHandler();
 
 nextApp.prepare().then(() => {
   startMqttGeofenceListener();
-  startMqttTapHadoopPipeline();
+  const tapHadoopPipeline = startMqttTapHadoopPipeline();
+  const tripHadoopPipeline = startMqttTripHadoopPipeline();
   const server = createServer((req, res) => {
     void handle(req, res);
   });
@@ -31,7 +33,8 @@ nextApp.prepare().then(() => {
   server.listen(port);
 
   const shutdown = () => {
-    server.close(() => {
+    server.close(async () => {
+      await Promise.all([tapHadoopPipeline.stop(), tripHadoopPipeline.stop()]);
       process.exit(0);
     });
   };

@@ -1,5 +1,6 @@
 import { TransactionType } from "@/generated/prisma/client";
 import { ApiResponses } from "@/lib/api-response";
+import { findStationInRange } from "@/lib/geofence";
 import { prisma } from "@/lib/prisma";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
@@ -50,6 +51,12 @@ const normalizeStationName = (value: string | undefined) => {
 
   return trimmed;
 };
+
+const hasValidTapCoordinates = (payload: {
+  latitude?: number;
+  longitude?: number;
+}) =>
+  Number.isFinite(payload.latitude) && Number.isFinite(payload.longitude);
 
 export default async function handler(
   req: NextApiRequest,
@@ -145,6 +152,27 @@ export default async function handler(
   const isTapOut = card.isInside;
   const isTapIn = !isTapOut;
 
+  let stationName = normalizeStationName(payload.stationName);
+
+  if (hasValidTapCoordinates(payload)) {
+    const stations = await prisma.station.findMany({
+      select: {
+        id: true,
+        name: true,
+        latitude: true,
+        longitude: true,
+        radius: true,
+      },
+    });
+    const match = findStationInRange(
+      stations,
+      payload.latitude as number,
+      payload.longitude as number,
+    );
+
+    stationName = match?.station.name ?? "-";
+  }
+
   if (isTapOut && card.lastBusId && card.lastBusId !== payload.busId) {
     return ApiResponses.error(res, {
       status: 409,
@@ -214,7 +242,7 @@ export default async function handler(
           amount: isTapOut ? 0 : price,
           latTap: payload.latitude,
           lngTap: payload.longitude,
-          stationName: normalizeStationName(payload.stationName),
+          stationName,
         },
       });
 

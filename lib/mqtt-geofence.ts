@@ -1,6 +1,10 @@
-import { distance, point } from "@turf/turf";
 import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 
+import {
+  findStationInRange,
+  getDistanceToStationMeters,
+  type StationGeofenceSnapshot,
+} from "./geofence";
 import { prisma } from "./prisma";
 
 type BusLocationPayload = {
@@ -9,23 +13,20 @@ type BusLocationPayload = {
   lng?: number;
 };
 
-type StationSnapshot = {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  radius: number;
-};
+type StationSnapshot = StationGeofenceSnapshot;
 
 type BusStatus = "ARRIVED" | "IN_TRANSIT";
 
 type StatusState = {
   status: BusStatus;
   stationId: string | null;
+  outsideCount: number;
 };
 
 const STATION_REFRESH_MS = 2 * 60 * 1000;
 const STATUS_PUBLISH_INTERVAL_MS = 10 * 1000;
+const EXIT_RADIUS_MARGIN_METERS = 25;
+const EXIT_CONFIRMATION_COUNT = 3;
 
 const normalizeTopic = (topic: string) => topic.replace(/\/+$/, "");
 
@@ -43,31 +44,6 @@ const extractBusIdFromTopic = (topic: string) => {
   const cleaned = topic.replace(/\/+$/, "");
   const parts = cleaned.split("/").filter(Boolean);
   return parts[parts.length - 1] ?? null;
-};
-
-const selectStationInRange = (
-  stations: StationSnapshot[],
-  lat: number,
-  lng: number,
-) => {
-  const busPoint = point([lng, lat]);
-  let nearest: StationSnapshot | null = null;
-  let nearestDistance = Number.POSITIVE_INFINITY;
-
-  for (const station of stations) {
-    const stationPoint = point([station.longitude, station.latitude]);
-    const distanceKm = distance(busPoint, stationPoint, {
-      units: "kilometers",
-    });
-    const distanceMeters = distanceKm * 1000;
-
-    if (distanceMeters <= station.radius && distanceMeters < nearestDistance) {
-      nearest = station;
-      nearestDistance = distanceMeters;
-    }
-  }
-
-  return nearest;
 };
 
 const buildMqttOptions = () => {
@@ -161,6 +137,7 @@ export const startMqttGeofenceListener = () => {
   client.on("message", (topic, message) => {
     try {
       const payload = JSON.parse(message.toString()) as BusLocationPayload;
+      console.log("INI TRACKING MASUK: ");
       const busId = payload.busId || extractBusIdFromTopic(topic);
       const lat = Number(payload.lat);
       const lng = Number(payload.lng);
@@ -176,13 +153,40 @@ export const startMqttGeofenceListener = () => {
         topic,
       });
 
-      const station = selectStationInRange(stations, lat, lng);
+      const previous = lastStatusByBus.get(busId);
+      const match = findStationInRange(stations, lat, lng);
+      let station = match?.station ?? null;
+      let nextOutsideCount = 0;
+
+      if (!station && previous?.status === "ARRIVED" && previous.stationId) {
+        const previousStation = stations.find(
+          (item) => item.id === previous.stationId,
+        );
+
+        if (previousStation) {
+          const distanceMeters = getDistanceToStationMeters(
+            previousStation,
+            lat,
+            lng,
+          );
+          const exitDistanceMeters =
+            previousStation.radius + EXIT_RADIUS_MARGIN_METERS;
+
+          nextOutsideCount =
+            distanceMeters > exitDistanceMeters ? previous.outsideCount + 1 : 0;
+
+          if (nextOutsideCount < EXIT_CONFIRMATION_COUNT) {
+            station = previousStation;
+          }
+        }
+      }
+
       const status: BusStatus = station ? "ARRIVED" : "IN_TRANSIT";
       const nextState: StatusState = {
         status,
         stationId: station?.id ?? null,
+        outsideCount: status === "ARRIVED" ? nextOutsideCount : 0,
       };
-      const previous = lastStatusByBus.get(busId);
       const now = Date.now();
       const lastPublishAt = lastPublishAtByBus.get(busId) ?? 0;
       const shouldPublishByInterval =
@@ -194,6 +198,7 @@ export const startMqttGeofenceListener = () => {
         previous.stationId === nextState.stationId &&
         !shouldPublishByInterval
       ) {
+        lastStatusByBus.set(busId, nextState);
         return;
       }
 

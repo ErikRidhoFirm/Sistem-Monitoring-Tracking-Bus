@@ -1,34 +1,55 @@
 import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 
-import {
-  appendHadoopJsonLines,
-  getHadoopFlushIntervalMs,
-} from "./hadoop-httpfs-sink";
+import { appendHadoopJsonLines, getHadoopFlushIntervalMs } from "./hadoop-httpfs-sink";
 
-type TapAction = "TAP_IN" | "TAP_OUT" | string;
-
-export type MqttTapEvent = {
-  busId: string;
-  action: TapAction;
-  user?: string;
-  rfidTag?: string;
-  stationName?: string;
+type MqttTripPayload = {
+  busId?: string;
+  imei?: string;
+  id?: string | number;
+  bus_number?: string;
+  plate_number?: string;
   lat?: number;
+  latitude?: number;
   lng?: number;
+  longitude?: number;
   speed?: number;
+  gps_time?: string;
+  datetime?: string;
+  current_halte?: string;
+  next_halte?: string;
+  message?: string;
   sat?: number;
   course?: number;
-  time?: string;
+  firmware_version?: string;
+  timestamp_ms?: number;
+};
+
+export type MqttTripEvent = {
+  busId: string;
+  imei?: string;
+  busNumber?: string;
+  plateNumber?: string;
+  lat: number;
+  lng: number;
+  speed?: number;
+  gpsTime?: string;
+  currentHalte?: string;
+  nextHalte?: string;
+  message?: string;
+  sat?: number;
+  course?: number;
+  firmwareVersion?: string;
   timestamp_ms?: number;
   receivedAt: string;
   topic: string;
 };
 
-type TapDayKey = string;
+type BusDayKey = `${string}:${string}`;
 
 type HadoopSinkInput = {
+  busId: string;
   date: string;
-  events: MqttTapEvent[];
+  events: MqttTripEvent[];
 };
 
 export type HadoopSink = (input: HadoopSinkInput) => Promise<void>;
@@ -42,7 +63,7 @@ type PipelineOptions = {
   sink?: HadoopSink;
 };
 
-const DEFAULT_TOPIC = "bus/tracking/tap";
+const DEFAULT_TOPIC = "/bus/tracking/location";
 const DEFAULT_FLUSH_INTERVAL_MS = 60 * 1000;
 
 function getDayUtc(value: Date): string {
@@ -60,9 +81,7 @@ function normalizeTopic(topic: string) {
 
 function buildTopicVariants(topic: string) {
   const normalized = normalizeTopic(topic);
-  const withLeading = normalized.startsWith("/")
-    ? normalized
-    : `/${normalized}`;
+  const withLeading = normalized.startsWith("/") ? normalized : `/${normalized}`;
   const withoutLeading = normalized.replace(/^\/+/, "");
 
   return Array.from(new Set([withLeading, withoutLeading])).map(
@@ -70,25 +89,31 @@ function buildTopicVariants(topic: string) {
   );
 }
 
+function extractBusIdFromTopic(topic: string) {
+  const parts = topic.replace(/\/+$/, "").split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? "";
+}
+
 async function defaultSink(input: HadoopSinkInput): Promise<void> {
   await appendHadoopJsonLines({
-    dataset: "rfid",
+    dataset: "tracking",
+    busId: input.busId,
     date: input.date,
     events: input.events,
   });
 }
 
-export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
+export function startMqttTripHadoopPipeline(options: PipelineOptions = {}) {
   const brokerUrl =
     options.brokerUrl || process.env.MQTT_BROKER_URL || "mqtt://localhost:1883";
-  const topic = options.topic || process.env.MQTT_TAP_TOPIC || DEFAULT_TOPIC;
+  const topic =
+    options.topic || process.env.MQTT_TRACKING_TOPIC || process.env.MQTT_TOPIC || DEFAULT_TOPIC;
   const subscriptionTopics = buildTopicVariants(topic);
   const flushIntervalMs =
-    options.flushIntervalMs ??
-    getHadoopFlushIntervalMs(DEFAULT_FLUSH_INTERVAL_MS);
+    options.flushIntervalMs ?? getHadoopFlushIntervalMs(DEFAULT_FLUSH_INTERVAL_MS);
   const sink = options.sink || defaultSink;
 
-  console.log("[tap-hadoop-pipeline] boot", {
+  console.log("[trip-hadoop-pipeline] boot", {
     brokerUrl,
     topic,
     subscriptionTopics,
@@ -98,7 +123,7 @@ export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
   const clientOptions: IClientOptions = {
     reconnectPeriod: 1000,
     connectTimeout: 30 * 1000,
-    clientId: `buswy-tap-hadoop-${Math.random().toString(36).slice(2, 10)}`,
+    clientId: `buswy-trip-hadoop-${Math.random().toString(36).slice(2, 10)}`,
   };
 
   const username = options.username || process.env.MQTT_USERNAME;
@@ -111,26 +136,21 @@ export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
   }
 
   const client: MqttClient = mqtt.connect(brokerUrl, clientOptions);
-
-  // Penyimpanan Sementara untuk event yang diterima, dikelompokkan berdasarkan hari (UTC)
-  const buckets = new Map<TapDayKey, MqttTapEvent[]>();
+  const buckets = new Map<BusDayKey, MqttTripEvent[]>();
 
   const getTotalBufferedEvents = () =>
-    Array.from(buckets.values()).reduce(
-      (total, events) => total + events.length,
-      0,
-    );
+    Array.from(buckets.values()).reduce((total, events) => total + events.length, 0);
 
   const flush = async () => {
     const keys = Array.from(buckets.keys());
     const totalBufferedEvents = getTotalBufferedEvents();
-    console.log("[tap-hadoop-pipeline] flush tick", {
+    console.log("[trip-hadoop-pipeline] flush tick", {
       bucketCount: keys.length,
       totalBufferedEvents,
     });
 
     if (totalBufferedEvents === 0) {
-      console.log("[tap-hadoop-pipeline] flush skipped: no buffered events");
+      console.log("[trip-hadoop-pipeline] flush skipped: no buffered events");
       return;
     }
 
@@ -140,20 +160,22 @@ export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
         continue;
       }
 
-      const date = key;
+      const [busId, date] = key.split(":");
       try {
-        console.log("[tap-hadoop-pipeline] flushing", {
+        console.log("[trip-hadoop-pipeline] flushing", {
+          busId,
           date,
           count: events.length,
         });
-        await sink({ date, events: [...events] });
+        await sink({ busId, date, events: [...events] });
         buckets.set(key, []);
-        console.log("[tap-hadoop-pipeline] flush success", {
+        console.log("[trip-hadoop-pipeline] flush success", {
+          busId,
           date,
           count: events.length,
         });
       } catch (error) {
-        console.error("[tap-hadoop-pipeline] sink error", { key, error });
+        console.error("[trip-hadoop-pipeline] sink error", { key, error });
       }
     }
   };
@@ -163,23 +185,26 @@ export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
   }, flushIntervalMs);
 
   client.on("connect", () => {
-    console.log("[tap-hadoop-pipeline] mqtt connected");
+    console.log("[trip-hadoop-pipeline] mqtt connected");
     client.subscribe(subscriptionTopics, (err) => {
       if (err) {
-        console.error("[tap-hadoop-pipeline] subscribe error", err);
+        console.error("[trip-hadoop-pipeline] subscribe error", err);
         return;
       }
-      console.log("[tap-hadoop-pipeline] subscribed", subscriptionTopics);
+      console.log("[trip-hadoop-pipeline] subscribed", subscriptionTopics);
     });
   });
 
   client.on("message", (rawTopic, message) => {
     try {
       const rawPayload = message.toString();
-      const parsed = JSON.parse(message.toString()) as Record<string, unknown>;
-      const busId = String(parsed.busId || "").trim();
-      if (!busId) {
-        console.warn("[tap-hadoop-pipeline] skip payload without busId", {
+      const parsed = JSON.parse(rawPayload) as MqttTripPayload;
+      const busId = String(parsed.busId || extractBusIdFromTopic(rawTopic)).trim();
+      const lat = toFiniteNumber(parsed.lat ?? parsed.latitude);
+      const lng = toFiniteNumber(parsed.lng ?? parsed.longitude);
+
+      if (!busId || lat == null || lng == null) {
+        console.warn("[trip-hadoop-pipeline] skip invalid location payload", {
           topic: rawTopic,
           payload: rawPayload,
         });
@@ -189,25 +214,22 @@ export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
       const receivedAtDate = new Date();
       const receivedAt = receivedAtDate.toISOString();
       const date = getDayUtc(receivedAtDate);
-      const key: TapDayKey = date;
-      const nextEvent: MqttTapEvent = {
+      const key: BusDayKey = `${busId}:${date}`;
+      const nextEvent: MqttTripEvent = {
         busId,
-        action: String(parsed.action || "UNKNOWN"),
-        user: parsed.user ? String(parsed.user) : undefined,
-        rfidTag: parsed.rfidTag
-          ? String(parsed.rfidTag)
-          : parsed.user
-            ? String(parsed.user)
-            : undefined,
-        stationName: parsed.stationName
-          ? String(parsed.stationName)
-          : undefined,
-        lat: toFiniteNumber(parsed.lat),
-        lng: toFiniteNumber(parsed.lng),
+        imei: parsed.imei ? String(parsed.imei) : undefined,
+        busNumber: parsed.bus_number ? String(parsed.bus_number) : undefined,
+        plateNumber: parsed.plate_number ? String(parsed.plate_number) : undefined,
+        lat,
+        lng,
         speed: toFiniteNumber(parsed.speed),
+        gpsTime: parsed.gps_time || parsed.datetime,
+        currentHalte: parsed.current_halte,
+        nextHalte: parsed.next_halte,
+        message: parsed.message,
         sat: toFiniteNumber(parsed.sat),
         course: toFiniteNumber(parsed.course),
-        time: parsed.time ? String(parsed.time) : undefined,
+        firmwareVersion: parsed.firmware_version,
         timestamp_ms: toFiniteNumber(parsed.timestamp_ms),
         receivedAt,
         topic: rawTopic,
@@ -217,17 +239,16 @@ export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
       existing.push(nextEvent);
       buckets.set(key, existing);
 
-      console.log("[tap-hadoop-pipeline] tap-event", {
+      console.log("[trip-hadoop-pipeline] trip-event", {
         busId: nextEvent.busId,
-        action: nextEvent.action,
-        user: nextEvent.user,
-        stationName: nextEvent.stationName,
-        time: nextEvent.time,
+        lat: nextEvent.lat,
+        lng: nextEvent.lng,
+        gpsTime: nextEvent.gpsTime,
         topic: nextEvent.topic,
         bufferedCount: existing.length,
       });
     } catch (error) {
-      console.error("[tap-hadoop-pipeline] parse error", {
+      console.error("[trip-hadoop-pipeline] parse error", {
         topic: rawTopic,
         payload: message.toString(),
         error,
@@ -236,7 +257,7 @@ export function startMqttTapHadoopPipeline(options: PipelineOptions = {}) {
   });
 
   client.on("error", (error) => {
-    console.error("[tap-hadoop-pipeline] mqtt error", error);
+    console.error("[trip-hadoop-pipeline] mqtt error", error);
   });
 
   const stop = async () => {

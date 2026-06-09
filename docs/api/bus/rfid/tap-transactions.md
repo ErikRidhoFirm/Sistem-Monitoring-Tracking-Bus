@@ -26,7 +26,8 @@ Aturan utama:
   "busId": "cmabc123",
   "deviceKey": "device-secret-key",
   "latitude": -7.289,
-  "longitude": 112.734
+  "longitude": 112.734,
+  "stationName": "Halte Politeknik Negeri Malang"
 }
 ```
 
@@ -37,6 +38,9 @@ Aturan utama:
 - `deviceKey` (string, required): Device key yang harus cocok dengan IoT device bus.
 - `latitude` (number, optional): Koordinat latitude saat tap.
 - `longitude` (number, optional): Koordinat longitude saat tap.
+- `stationName` (string, optional): Fallback nama halte dari device jika koordinat tidak tersedia.
+
+Jika `latitude` dan `longitude` valid, backend menghitung geofence terhadap data station di database dan memakai hasil itu sebagai `stationName` transaksi. Jika koordinat valid tetapi berada di luar semua radius station, tap tetap diproses dan `stationName` disimpan sebagai `-`.
 
 ## Success Response
 
@@ -182,4 +186,6 @@ Catatan: setelah mengaktifkan `price` per bus, setiap tap akan memotong saldo se
 
 - Kirim `deviceKey` yang valid untuk device aktif pada bus terkait.
 - Kirim `latitude`/`longitude` jika tersedia untuk jejak lokasi tap.
+- Backend akan menentukan `stationName` final dari `latitude`/`longitude` jika keduanya valid.
+- `stationName` dari device hanya dipakai sebagai fallback saat koordinat tidak tersedia.
 - Pastikan retry request di-handle dengan hati-hati agar tidak melakukan tap ganda tanpa kontrol di sisi device.

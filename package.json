@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:prod": "SET NODE_ENV=production && bun server.ts",
     "lint": "eslint"
   },
   "dependencies": {

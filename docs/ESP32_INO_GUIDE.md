@@ -450,7 +450,7 @@ Field request tap:
 | `deviceKey` | string | Ya | `DEVICE_KEY` | Secret device yang aktif dan sedang terhubung ke bus tersebut. |
 | `latitude` | number | Opsional | GPS latitude terakhir | Disimpan ke transaksi sebagai `latTap`. |
 | `longitude` | number | Opsional | GPS longitude terakhir | Disimpan ke transaksi sebagai `lngTap`. |
-| `stationName` | string | Opsional | Status halte terakhir | Disimpan ke transaksi. Jika kosong/null, backend jadikan `-`. |
+| `stationName` | string | Opsional | Status halte terakhir | Fallback jika GPS tidak tersedia. Jika `latitude` dan `longitude` valid, backend menghitung station final dari geofence database. |
 
 Aturan backend:
 
@@ -461,6 +461,9 @@ Aturan backend:
 - Saat `TAP_OUT`, kartu harus tap out di bus yang sama dengan `lastBusId`.
 - `deviceKey` harus valid.
 - Device harus sedang terhubung ke `busId` yang dikirim.
+- Jika `latitude` dan `longitude` valid, backend menghitung sendiri station dari geofence database.
+- Jika koordinat valid tetapi di luar semua radius halte, tap tetap sukses dan `stationName` transaksi menjadi `-`.
+- `stationName` dari firmware hanya fallback ketika koordinat tidak dikirim.
 
 ### 6.3 MQTT Publish Tap Event Opsional
 
@@ -561,7 +564,7 @@ String currentBusStatus = "IN_TRANSIT";
 String currentStationName = "-";
 ```
 
-Gunakan `currentStationName` sebagai `stationName` saat mengirim tap HTTP.
+Gunakan `currentStationName` sebagai fallback `stationName` saat mengirim tap HTTP. Backend tetap memprioritaskan hitungan geofence dari `latitude` dan `longitude` jika GPS valid.
 
 ### 7.2 Response Sukses HTTP Tap
 
@@ -774,7 +777,7 @@ if (gpsHasFix) {
   doc["longitude"] = lastLongitude;
 }
 
-doc["stationName"] = currentStationName;
+doc["stationName"] = currentStationName; // Fallback; backend menghitung ulang jika GPS valid.
 
 String body;
 serializeJson(doc, body);

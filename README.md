@@ -7,6 +7,7 @@ Buswy is a Next.js (Pages Router) app for bus operations with realtime map track
 - IoT devices publish location and tap events to MQTT.
 - Backend subscribes MQTT topics and becomes the single realtime source.
 - Backend broadcasts normalized bus updates to frontend via WebSocket `/ws`.
+- Backend buffers MQTT location and tap events, then appends daily JSONL files to Hadoop via HttpFS.
 - Frontend only renders websocket payload (no geofencing / routing calculations on client).
 
 Realtime flow:
@@ -20,7 +21,13 @@ Tap event flow (starter template):
 
 1. Device -> MQTT tap topic (`bus/tracking/tap/<busId>`)
 2. `lib/mqtt-tap-hadoop-pipeline.ts` buffers per bus/day
-3. Periodic flush to sink hook (default sink is placeholder log)
+3. Periodic flush to Hadoop HttpFS as daily JSONL
+
+Trip history flow:
+
+1. Device -> MQTT location topic (`/bus/tracking/location/<busId>`)
+2. `lib/mqtt-trip-hadoop-pipeline.ts` buffers per bus/day
+3. Periodic flush to Hadoop HttpFS as daily JSONL
 
 ## Run (Bun-friendly custom server)
 
@@ -44,8 +51,23 @@ Set these in `.env.local` (or runtime env):
 - `MQTT_STATUS_TOPIC` (for geofence status publish/subscribe)
 - `MQTT_TOPIC` (location topic base for websocket relay)
 - `MQTT_TAP_TOPIC` (optional, default `bus/tracking/tap`)
+- `HADOOP_HTTPFS_URL` (for example `http://100.88.143.16:9864/webhdfs/v1`)
+- `HADOOP_USER` (default `hadoop`)
+- `HADOOP_BASE_PATH` (default `/data`)
+- `HADOOP_FLUSH_INTERVAL_MS` (default `60000`, flush every 1 minute)
 - `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`
 - `NEXT_PUBLIC_REALTIME_WS_URL` (optional; defaults to `ws(s)://<host>/ws`)
+
+Hadoop output paths:
+
+```text
+/data/tracking/year=YYYY/month=MM/day=DD/busId=<busId>/tracking_YYYYMMDD_HHmm_<busId>_<batchId>.jsonl
+/data/rfid/year=YYYY/month=MM/day=DD/rfid_YYYYMMDD_HHmm_<batchId>.jsonl
+```
+
+Each flush creates a new JSONL batch file under the daily partition. This avoids relying on HDFS append support.
+
+For Docker image build and VPS deployment, see `docs/DOCKER_DEPLOYMENT.md`.
 
 ## Realtime Payload (frontend log shape)
 
@@ -74,7 +96,9 @@ Browser console logs `[realtime-ws] telemetry` with fields like:
 - `lib/mqtt-geofence.ts` - backend geofencing and status topic publisher
 - `lib/realtime-bus-feed.ts` - frontend websocket adapter
 - `pages/realtime-map.tsx` - realtime UI
-- `lib/mqtt-tap-hadoop-pipeline.ts` - tap-in/tap-out Hadoop pipeline starter
+- `lib/hadoop-httpfs-sink.ts` - Hadoop HttpFS JSONL append helper
+- `lib/mqtt-tap-hadoop-pipeline.ts` - tap-in/tap-out Hadoop pipeline
+- `lib/mqtt-trip-hadoop-pipeline.ts` - trip history Hadoop pipeline
 
 ## Notes
 

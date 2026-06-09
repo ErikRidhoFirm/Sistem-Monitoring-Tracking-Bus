@@ -70,7 +70,8 @@ type BusCapacity = {
 const DEFAULT_TOPIC = "/bus/tracking/location";
 const DEFAULT_STATUS_TOPIC = "/bus/tracking/status";
 
-const normalizeTopicPath = (value: string) => value.replace(/\/+$/, "").replace(/^\/+/, "");
+const normalizeTopicPath = (value: string) =>
+  value.replace(/\/+$/, "").replace(/^\/+/, "");
 
 export function startRealtimeWsServer(server: Server) {
   const wss = new WebSocketServer({
@@ -123,7 +124,10 @@ export function startRealtimeWsServer(server: Server) {
 
   const mqttClient = mqtt.connect(brokerUrl, clientOptions);
   const busIdentityCache = new Map<string, BusIdentity>();
-  const statusByBus = new Map<string, { nearestStop: string; busStatus: string }>();
+  const statusByBus = new Map<
+    string,
+    { nearestStop: string; busStatus: string }
+  >();
 
   const toBusStatusLabel = (status?: string, stationName?: string) => {
     if (status === "ARRIVED") {
@@ -223,19 +227,29 @@ export function startRealtimeWsServer(server: Server) {
   };
 
   mqttClient.on("connect", () => {
-    mqttClient.subscribe([...subscriptionTopics, ...statusSubscriptionTopics], (err) => {
-      if (err) {
-        console.error("MQTT subscribe error:", err);
-      }
-    });
+    mqttClient.subscribe(
+      [...subscriptionTopics, ...statusSubscriptionTopics],
+      (err) => {
+        if (err) {
+          console.error("MQTT subscribe error:", err);
+        }
+      },
+    );
   });
 
-  mqttClient.on("message", async (rawTopic, message) => {
-    const isStatusMessage = normalizeTopicPath(rawTopic).startsWith(statusTopicPath);
+  mqttClient.on("message", async (rawTopic, message, packet) => {
+    console.log("MQTT TOPIC:", rawTopic);
+    console.log("MQTT RETAIN:", packet.retain);
+    console.log("MQTT PAYLOAD:", message.toString());
+
+    const isStatusMessage =
+      normalizeTopicPath(rawTopic).startsWith(statusTopicPath);
 
     if (isStatusMessage) {
       try {
-        const statusPayload = JSON.parse(message.toString()) as MqttBusStatusPayload;
+        const statusPayload = JSON.parse(
+          message.toString(),
+        ) as MqttBusStatusPayload;
         const busId = statusPayload.busId ? String(statusPayload.busId) : "";
         if (!busId) {
           return;
@@ -273,7 +287,8 @@ export function startRealtimeWsServer(server: Server) {
     const busIdentity = await resolveBusIdentity(payload);
     const busCapacity = await getBusCapacity(payload, busIdentity);
     const busStatusSnapshot = statusByBus.get(busIdentity.busId);
-    const nearestStop = busStatusSnapshot?.nearestStop || payload.current_halte || "-";
+    const nearestStop =
+      busStatusSnapshot?.nearestStop || payload.current_halte || "-";
     const busStatus = busStatusSnapshot?.busStatus || "In Transit";
     const wsPayload: RealtimeWsPayload = {
       coordinates: [
@@ -302,7 +317,13 @@ export function startRealtimeWsServer(server: Server) {
     const messageText = JSON.stringify(wsPayload);
     wss.clients.forEach((client) => {
       if (client.readyState === client.OPEN) {
+        console.log("Sending WS update for bus:", busIdentity.busId);
         client.send(messageText);
+      } else {
+        console.log(
+          "Skipping WS update for bus due to closed connection:",
+          busIdentity.busId,
+        );
       }
     });
   });
