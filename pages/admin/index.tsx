@@ -7,7 +7,6 @@ import SelectMenu from "@/components/ui/select-menu";
 import { CreditCard, Sparkles, Users, Wifi } from "lucide-react";
 import { useAdminBuses } from "@/lib/hooks/use-admin-buses";
 import { useAdminOverviewByBus } from "@/lib/hooks/use-admin-overview";
-import { useAdminProfitTrend } from "@/lib/hooks/use-admin-profit-trend";
 import { useAdminProfitSummary } from "@/lib/hooks/use-admin-profit-summary";
 import { useAdminTodayTransactionsByBus } from "@/lib/hooks/use-admin-today-transactions";
 import { AdminPageHeader } from "@/components/admin/page-header";
@@ -31,11 +30,9 @@ const profitSummarySectionClassName =
 
 export default function AdminPage() {
   const [selectedBusId, setSelectedBusId] = useState<string | "ALL">("ALL");
-  const [selectedProfitRange, setSelectedProfitRange] = useState<"weekly" | "monthly" | "yearly">("weekly");
   const overviewQuery = useAdminOverviewByBus(selectedBusId);
   const busesQuery = useAdminBuses("");
   const profitQuery = useAdminProfitSummary(selectedBusId);
-  const profitTrendQuery = useAdminProfitTrend(selectedBusId, selectedProfitRange);
   const transactionsQuery = useAdminTodayTransactionsByBus(5, selectedBusId);
   const todayTrendQuery = useAdminTodayTransactionsByBus(20, selectedBusId);
 
@@ -107,25 +104,7 @@ export default function AdminPage() {
     },
   ];
 
-  const selectedProfitRangeLabel =
-    selectedProfitRange === "weekly"
-      ? "Profit Mingguan"
-      : selectedProfitRange === "monthly"
-        ? "Profit Bulanan"
-        : "Profit Tahunan";
 
-  const selectedProfitRangeDescription =
-    selectedProfitRange === "weekly"
-      ? "Akumulasi transaksi sejak awal minggu."
-      : selectedProfitRange === "monthly"
-        ? "Akumulasi transaksi sejak awal bulan."
-        : "Akumulasi transaksi sejak awal tahun.";
-
-  const selectedRangeProfitChartData = profitTrendQuery.data?.points ?? [];
-  const selectedRangeProfitTotal = selectedRangeProfitChartData.reduce(
-    (sum, point) => sum + point.profit,
-    0,
-  );
 
   return (
     <AdminLayout>
@@ -154,7 +133,6 @@ export default function AdminPage() {
                 overviewQuery.refetch();
                 busesQuery.refetch();
                 profitQuery.refetch();
-                profitTrendQuery.refetch();
                 transactionsQuery.refetch();
                 todayTrendQuery.refetch();
               }}
@@ -162,7 +140,6 @@ export default function AdminPage() {
                 overviewQuery.isFetching ||
                 busesQuery.isFetching ||
                 profitQuery.isFetching ||
-                profitTrendQuery.isFetching ||
                 transactionsQuery.isFetching ||
                 todayTrendQuery.isFetching
               }
@@ -220,136 +197,47 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent className="flex h-full flex-col gap-4 p-5 pt-0">
               {!profitQuery.isLoading && !profitQuery.isError ? (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
-                        Profit Hari Ini
-                      </p>
-                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                        {formatCurrency(profitQuery.data?.dailyProfit)}
-                      </p>
-                      <p className="mt-2 text-sm text-[#f4f1e8]/75">
-                        Akumulasi semua transaksi hari ini untuk {selectedBusLabel}.
-                      </p>
-                    </Card>
-
-                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
-                        Profit Mingguan
-                      </p>
-                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                        {formatCurrency(profitQuery.data?.weeklyProfit)}
-                      </p>
-                      <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal minggu.</p>
-                    </Card>
-
-                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
-                        Profit Bulanan
-                      </p>
-                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                        {formatCurrency(profitQuery.data?.monthlyProfit)}
-                      </p>
-                      <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal bulan.</p>
-                    </Card>
-
-                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
-                        Profit Tahunan
-                      </p>
-                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                        {formatCurrency(profitQuery.data?.yearlyProfit)}
-                      </p>
-                      <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal tahun.</p>
-                    </Card>
-                  </div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                      Profit Hari Ini
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                      {formatCurrency(profitQuery.data?.dailyProfit)}
+                    </p>
+                    <p className="mt-2 text-sm text-[#f4f1e8]/75">
+                      Akumulasi semua transaksi hari ini untuk {selectedBusLabel}.
+                    </p>
+                  </Card>
 
                   <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#f4f1e8]/80">
-                          Profit Berdasarkan Periode
-                        </p>
-                        <p className="mt-1 text-sm text-[#f4f1e8]/75">
-                          Pilih periode untuk melihat total profit dalam bentuk kartu.
-                        </p>
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 p-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={selectedProfitRange === "weekly" ? "default" : "ghost"}
-                          className={`rounded-full ${selectedProfitRange === "weekly" ? "bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_10px_24px_rgba(255,122,47,0.28)] hover:opacity-95" : "text-[#f4f1e8]/90 hover:bg-white/15 hover:text-[#f4f1e8]"}`}
-                          onClick={() => setSelectedProfitRange("weekly")}
-                        >
-                          Mingguan
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={selectedProfitRange === "monthly" ? "default" : "ghost"}
-                          className={`rounded-full ${selectedProfitRange === "monthly" ? "bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_10px_24px_rgba(255,122,47,0.28)] hover:opacity-95" : "text-[#f4f1e8]/90 hover:bg-white/15 hover:text-[#f4f1e8]"}`}
-                          onClick={() => setSelectedProfitRange("monthly")}
-                        >
-                          Bulanan
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={selectedProfitRange === "yearly" ? "default" : "ghost"}
-                          className={`rounded-full ${selectedProfitRange === "yearly" ? "bg-[linear-gradient(135deg,#ff9a4df2_0%,#ff7a2fd9_100%)] text-white shadow-[0_10px_24px_rgba(255,122,47,0.28)] hover:opacity-95" : "text-[#f4f1e8]/90 hover:bg-white/15 hover:text-[#f4f1e8]"}`}
-                          onClick={() => setSelectedProfitRange("yearly")}
-                        >
-                          Tahunan
-                        </Button>
-                      </div>
-                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                      Profit Mingguan
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                      {formatCurrency(profitQuery.data?.weeklyProfit)}
+                    </p>
+                    <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal minggu.</p>
+                  </Card>
 
-                    {profitTrendQuery.isLoading ? (
-                      <p className="mt-5 text-sm text-[#f4f1e8]/75">Memuat data kartu rentang...</p>
-                    ) : null}
-                    {profitTrendQuery.isError ? (
-                      <p className="mt-5 text-sm text-destructive">
-                        {profitTrendQuery.error instanceof Error
-                          ? profitTrendQuery.error.message
-                          : "Gagal memuat data profit rentang."}
-                      </p>
-                    ) : null}
+                  <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                      Profit Bulanan
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                      {formatCurrency(profitQuery.data?.monthlyProfit)}
+                    </p>
+                    <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal bulan.</p>
+                  </Card>
 
-                    {!profitTrendQuery.isLoading && !profitTrendQuery.isError ? (
-                      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                        <Card className="border-white/15 bg-[#0b1b36]/40 p-4 text-[#f4f1e8] shadow-none">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
-                            {selectedProfitRangeLabel}
-                          </p>
-                          <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                            {formatCurrency(selectedRangeProfitTotal)}
-                          </p>
-                          <p className="mt-2 text-sm text-[#f4f1e8]/75">{selectedProfitRangeDescription}</p>
-                        </Card>
-
-                        <Card className="border-white/15 bg-[#0b1b36]/40 p-4 text-[#f4f1e8] shadow-none">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
-                            Ringkasan Cepat
-                          </p>
-                          <div className="mt-3 space-y-3 text-sm text-[#f4f1e8]/80">
-                            <div className="flex items-center justify-between gap-4">
-                              <span>Mingguan</span>
-                              <span className="font-semibold text-[#f4f1e8]">{formatCurrency(profitQuery.data?.weeklyProfit)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-4">
-                              <span>Bulanan</span>
-                              <span className="font-semibold text-[#f4f1e8]">{formatCurrency(profitQuery.data?.monthlyProfit)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-4">
-                              <span>Tahunan</span>
-                              <span className="font-semibold text-[#f4f1e8]">{formatCurrency(profitQuery.data?.yearlyProfit)}</span>
-                            </div>
-                          </div>
-                        </Card>
-                      </div>
-                    ) : null}
+                  <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                      Profit Tahunan
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                      {formatCurrency(profitQuery.data?.yearlyProfit)}
+                    </p>
+                    <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal tahun.</p>
                   </Card>
                 </div>
               ) : null}
