@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/admin/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SelectMenu from "@/components/ui/select-menu";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/line-chart";
 import { CreditCard, Sparkles, Users, Wifi } from "lucide-react";
 import { useAdminBuses } from "@/lib/hooks/use-admin-buses";
 import { useAdminOverviewByBus } from "@/lib/hooks/use-admin-overview";
@@ -12,7 +11,6 @@ import { useAdminProfitTrend } from "@/lib/hooks/use-admin-profit-trend";
 import { useAdminProfitSummary } from "@/lib/hooks/use-admin-profit-summary";
 import { useAdminTodayTransactionsByBus } from "@/lib/hooks/use-admin-today-transactions";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const dashboardSurfaceClassName =
   "rounded-3xl border border-border/50 bg-card/80 shadow-[0_12px_34px_rgba(15,23,42,0.06)] backdrop-blur-sm transform-gpu transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border/60 hover:bg-card/90 hover:shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
@@ -62,24 +60,6 @@ export default function AdminPage() {
       maximumFractionDigits: 0,
     }).format(value ?? 0);
 
-  const trendChartConfig = {
-    transactions: {
-      label: "Transaksi",
-      color: "#2563eb",
-    },
-    profit: {
-      label: "Profit",
-      color: "#f97316",
-    },
-  } satisfies ChartConfig;
-
-  const profitChartConfig = {
-    profit: {
-      label: "Profit",
-      color: "#f97316",
-    },
-  } satisfies ChartConfig;
-
   const metricItems = [
     {
       label: selectedBusId === "ALL" ? "Total Alat" : "Status Alat",
@@ -127,27 +107,6 @@ export default function AdminPage() {
     },
   ];
 
-  const trendChartData = useMemo(() => {
-    const hourBuckets = Array.from({ length: 24 }, (_, hour) => ({
-      hour: `${hour.toString().padStart(2, "0")}:00`,
-      transactions: 0,
-      profit: 0,
-    }));
-
-    for (const transaction of todayTrendQuery.data?.transactions ?? []) {
-      const createdAt = new Date(transaction.createdAt);
-      if (Number.isNaN(createdAt.getTime())) {
-        continue;
-      }
-
-      const hour = createdAt.getHours();
-      hourBuckets[hour].transactions += 1;
-      hourBuckets[hour].profit += transaction.amount;
-    }
-
-    return hourBuckets;
-  }, [todayTrendQuery.data?.transactions]);
-
   const selectedProfitRangeLabel =
     selectedProfitRange === "weekly"
       ? "Profit Mingguan"
@@ -161,11 +120,6 @@ export default function AdminPage() {
       : selectedProfitRange === "monthly"
         ? "Akumulasi transaksi sejak awal bulan."
         : "Akumulasi transaksi sejak awal tahun.";
-
-  const todayProfitChartData = trendChartData.map((item) => ({
-    label: item.hour,
-    profit: item.profit,
-  }));
 
   const selectedRangeProfitChartData = profitTrendQuery.data?.points ?? [];
   const selectedRangeProfitTotal = selectedRangeProfitChartData.reduce(
@@ -261,62 +215,66 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle className="text-[#f4f1e8]">Ringkasan Profit</CardTitle>
               <CardDescription className="text-[#f4f1e8]/80">
-                Dua chart profit: kiri untuk hari ini, kanan untuk periode yang dipilih.
+                Semua ringkasan profit ditampilkan dalam bentuk kartu.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex h-full flex-col p-5 pt-0">
+            <CardContent className="flex h-full flex-col gap-4 p-5 pt-0">
               {!profitQuery.isLoading && !profitQuery.isError ? (
-                <div className="grid flex-1 gap-4 lg:grid-cols-2">
-                  <Card className={chartPanelStaticClassName + " static-card flex h-full flex-col p-5"}>
-                    <div className="mb-4 flex flex-none flex-wrap items-start justify-between gap-3">
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                        Profit Hari Ini
+                      </p>
+                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                        {formatCurrency(profitQuery.data?.dailyProfit)}
+                      </p>
+                      <p className="mt-2 text-sm text-[#f4f1e8]/75">
+                        Akumulasi semua transaksi hari ini untuk {selectedBusLabel}.
+                      </p>
+                    </Card>
+
+                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                        Profit Mingguan
+                      </p>
+                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                        {formatCurrency(profitQuery.data?.weeklyProfit)}
+                      </p>
+                      <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal minggu.</p>
+                    </Card>
+
+                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                        Profit Bulanan
+                      </p>
+                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                        {formatCurrency(profitQuery.data?.monthlyProfit)}
+                      </p>
+                      <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal bulan.</p>
+                    </Card>
+
+                    <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                        Profit Tahunan
+                      </p>
+                      <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                        {formatCurrency(profitQuery.data?.yearlyProfit)}
+                      </p>
+                      <p className="mt-2 text-sm text-[#f4f1e8]/75">Ringkasan profit sejak awal tahun.</p>
+                    </Card>
+                  </div>
+
+                  <Card className="border-white/15 bg-white/10 p-5 text-[#f4f1e8] shadow-none">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#f4f1e8]/80">
-                          Chart Profit Hari Ini
+                          Profit Berdasarkan Periode
                         </p>
-                        <p className="mt-1 text-sm text-[#f4f1e8]/75">Akumulasi per jam.</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-right">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f4f1e8]/80">
-                          Total Today
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold leading-none tracking-tight text-[#f4f1e8] sm:text-3xl">
-                          {formatCurrency(profitQuery.data?.dailyProfit)}
+                        <p className="mt-1 text-sm text-[#f4f1e8]/75">
+                          Pilih periode untuk melihat total profit dalam bentuk kartu.
                         </p>
                       </div>
-                    </div>
-                    <ChartContainer
-                      config={profitChartConfig}
-                      className="min-h-[320px] flex-1 aspect-auto w-full [&_.recharts-cartesian-axis-tick_text]:fill-[#f4f1e8] [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/20"
-                    >
-                      <LineChart data={todayProfitChartData} margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis dataKey="label" tickLine={false} axisLine={false} interval={3} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
-                        <YAxis tickLine={false} axisLine={false} width={56} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              className="bg-[#0b1b36]/95 border border-white/15 text-[#f4f1e8] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-md [&_.text-muted-foreground]:text-white/60 [&_.text-foreground]:text-[#f4f1e8]"
-                              formatter={(value: number | string) => formatCurrency(Number(value))}
-                            />
-                          }
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="profit"
-                          stroke="var(--color-profit)"
-                          strokeWidth={2.5}
-                          dot={false}
-                          activeDot={{ r: 4 }}
-                        />
-                      </LineChart>
-                    </ChartContainer>
-                  </Card>
-
-                  <Card className={chartPanelStaticClassName + " static-card flex h-full flex-col p-5"}>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#f4f1e8]/80">
-                        Chart Profit Rentang
-                      </p>
                       <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 p-1">
                         <Button
                           type="button"
@@ -347,54 +305,51 @@ export default function AdminPage() {
                         </Button>
                       </div>
                     </div>
-                    <p className="mt-4 text-sm font-medium uppercase tracking-[0.24em] text-[#f4f1e8]/80">
-                      {selectedProfitRangeLabel}
-                    </p>
+
                     {profitTrendQuery.isLoading ? (
-                      <p className="mt-3 text-sm text-[#f4f1e8]/75">Memuat data chart rentang...</p>
+                      <p className="mt-5 text-sm text-[#f4f1e8]/75">Memuat data kartu rentang...</p>
                     ) : null}
                     {profitTrendQuery.isError ? (
-                      <p className="mt-3 text-sm text-destructive">
+                      <p className="mt-5 text-sm text-destructive">
                         {profitTrendQuery.error instanceof Error
                           ? profitTrendQuery.error.message
-                          : "Gagal memuat chart rentang profit."}
+                          : "Gagal memuat data profit rentang."}
                       </p>
                     ) : null}
+
                     {!profitTrendQuery.isLoading && !profitTrendQuery.isError ? (
-                      <ChartContainer
-                        config={profitChartConfig}
-                        className="mt-3 h-[220px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-[#f4f1e8] [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/20"
-                      >
-                        <LineChart data={selectedRangeProfitChartData} margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
-                          <CartesianGrid vertical={false} />
-                          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
-                          <YAxis tickLine={false} axisLine={false} width={56} tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 700, opacity: 1 }} />
-                          <ChartTooltip
-                            content={
-                              <ChartTooltipContent
-                                className="bg-[#0b1b36]/95 border border-white/15 text-[#f4f1e8] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-md [&_.text-muted-foreground]:text-white/60 [&_.text-foreground]:text-[#f4f1e8]"
-                                formatter={(value: number | string) => formatCurrency(Number(value))}
-                              />
-                            }
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="profit"
-                            stroke="var(--color-profit)"
-                            strokeWidth={2.5}
-                            dot
-                            activeDot={{ r: 5 }}
-                          />
-                        </LineChart>
-                      </ChartContainer>
+                      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                        <Card className="border-white/15 bg-[#0b1b36]/40 p-4 text-[#f4f1e8] shadow-none">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                            {selectedProfitRangeLabel}
+                          </p>
+                          <p className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                            {formatCurrency(selectedRangeProfitTotal)}
+                          </p>
+                          <p className="mt-2 text-sm text-[#f4f1e8]/75">{selectedProfitRangeDescription}</p>
+                        </Card>
+
+                        <Card className="border-white/15 bg-[#0b1b36]/40 p-4 text-[#f4f1e8] shadow-none">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/70">
+                            Ringkasan Cepat
+                          </p>
+                          <div className="mt-3 space-y-3 text-sm text-[#f4f1e8]/80">
+                            <div className="flex items-center justify-between gap-4">
+                              <span>Mingguan</span>
+                              <span className="font-semibold text-[#f4f1e8]">{formatCurrency(profitQuery.data?.weeklyProfit)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span>Bulanan</span>
+                              <span className="font-semibold text-[#f4f1e8]">{formatCurrency(profitQuery.data?.monthlyProfit)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span>Tahunan</span>
+                              <span className="font-semibold text-[#f4f1e8]">{formatCurrency(profitQuery.data?.yearlyProfit)}</span>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
                     ) : null}
-                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-[#f4f1e8]/80">
-                      Total {selectedProfitRangeLabel.replace("Profit ", "")}
-                    </p>
-                    <p className="mt-1 text-4xl font-semibold tracking-tight text-[#f4f1e8] sm:text-5xl">
-                      {formatCurrency(selectedRangeProfitTotal)}
-                    </p>
-                    <p className="mt-3 text-sm text-[#f4f1e8]/75">{selectedProfitRangeDescription}</p>
                   </Card>
                 </div>
               ) : null}
